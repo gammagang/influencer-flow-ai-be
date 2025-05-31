@@ -1,0 +1,39 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Influencer Flow AI API",
+    "version": "1.0.0",
+    "description": "API documentation for the Influencer Flow AI backend services."
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "paths": {
+    "/healthcheck": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Checks the health of the server.",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "example": "⚡⚡⚡ Hello ⚡⚡⚡ - Server is healthy 💗"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
