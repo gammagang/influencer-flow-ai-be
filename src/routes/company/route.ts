@@ -6,13 +6,6 @@ import { CreateCompanyReqSchema, UpdateCompanyMeReqSchema } from './validate'
 
 const router = Router()
 
-/**
- * @openapi
- * tags:
- *   name: Company
- *   description: Company profile management
- */
-
 router.get(`/company/me`, async (req: Request, res: Response) => {
   log.info(`Controller: GET /company/me`)
 
