@@ -9,7 +9,9 @@ import { mInitCLS } from '@/middlewares/cls'
 import { mErrorHandler } from '@/middlewares/error-handler'
 
 import swaggerUi from 'swagger-ui-express'
-import swaggerDocument from '@/configs/swagger.json'
+// import swaggerDocument from '@/configs/swagger.json' // We will replace this with swagger-jsdoc
+import swaggerJSDoc from 'swagger-jsdoc'
+import swaggerJsdocOptions from '@/configs/swagger-jsdoc'
 
 import { allRoutes } from './routes'
 
@@ -27,10 +29,31 @@ app.use(mInitCLS)
 app.set('trust proxy', true)
 
 // Swagger UI setup
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+const swaggerSpec = swaggerJSDoc(swaggerJsdocOptions)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.use('/api', allRoutes)
 
+/**
+ * @openapi
+ * /healthcheck:
+ *   get:
+ *     summary: Server Health Check
+ *     description: Responds if the server is healthy.
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 title:
+ *                   type: string
+ *                   example: ⚡⚡⚡ Hello ⚡⚡⚡ - Server is healthy 💗
+ */
 app.get('/healthcheck', async (_: Request, res: Response) => {
   SuccessResponse.send({
     res,
