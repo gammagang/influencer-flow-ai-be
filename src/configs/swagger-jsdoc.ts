@@ -8,7 +8,14 @@ const options = {
       version: '1.0.0',
       description:
         'API documentation for the Influencer Flow AI backend services, generated with swagger-jsdoc.'
-    }
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'Development server'
+      }
+    ],
+    components: {} // Add an empty components object
   },
   // Path to the API docs
   // Note that this path is relative to the directory from which the app is run

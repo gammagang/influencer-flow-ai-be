@@ -1,8 +1,8 @@
 import { Router } from 'express'
-import { entityRoutes } from './entity/route'
+import { companyRoutes } from './company/route'
 
 const router = Router()
 
-router.use(entityRoutes)
+router.use('/company', companyRoutes)
 
 export { router as allRoutes }
