@@ -7,8 +7,7 @@ export class BadRequestError extends CustomError {
 
   constructor(
     public override message: string,
-    public instance: string,
-    public detail?: string
+    public instance: string
   ) {
     super(message)
   }
@@ -16,9 +15,9 @@ export class BadRequestError extends CustomError {
   serializeErrors() {
     return {
       type: this.type,
-      title: this.message,
+      title: 'Bad Request',
       status: this.statusCode,
-      detail: this.detail || 'Bad Request',
+      detail: this.message,
       instance: this.instance
     }
   }
