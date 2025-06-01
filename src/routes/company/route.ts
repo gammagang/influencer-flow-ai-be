@@ -3,11 +3,12 @@ import { SuccessResponse } from '@/libs/success-response'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { CreateCompanyReqSchema, UpdateCompanyMeReqSchema } from './validate'
+import { summarizeWebsite } from '@/api/summarize'
 
 const router = Router()
 
-router.get(`/company/me`, async (req: Request, res: Response) => {
-  log.info(`Controller: GET /company/me`)
+router.get(`/me`, async (req: Request, res: Response) => {
+  log.info(`Controller: GET /me`)
 
   const sampleCompany = {
     id: 'company-uuid-123',
@@ -19,8 +20,8 @@ router.get(`/company/me`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: sampleCompany })
 })
 
-router.put(`/company/me`, async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /company/me`)
+router.put(`/me`, async (req: Request, res: Response) => {
+  log.info(`Controller: PUT /me`)
   const validatedBody = validateRequest(UpdateCompanyMeReqSchema, req.body, req.path)
 
   const updatedCompany = {
@@ -33,8 +34,8 @@ router.put(`/company/me`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCompany })
 })
 
-router.post('/company', async (req: Request, res: Response) => {
-  log.info(`Controller: POST /company`)
+router.post('', async (req: Request, res: Response) => {
+  log.info(`Controller: POST `)
   const validatedBody = validateRequest(CreateCompanyReqSchema, req.body, req.path)
 
   const newCompany = {
@@ -47,26 +48,35 @@ router.post('/company', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newCompany, status: 201 })
 })
 
-router.put('/company/:companyId/analyze', async (req: Request, res: Response) => {
-  log.info('Controller: PUT /company/:companyId/analyze')
+router.get('/:companyId/analyze', async (req: Request, res: Response) => {
+  log.info('Controller: GET /:companyId/analyze')
   const { companyId } = req.params
-  const websiteUrl = req.query.url
+  const websiteUrl = req.query.url as string
 
   if (!websiteUrl) {
-    // Or handle with a more specific error, e.g., BadRequestError
     return res.status(400).send({ message: 'Missing URL query parameter' })
   }
 
-  // TODO: Add AI LLM Integration to analyze the website URL
-  // TODO: Save info in DB using companyId - @monish
-
-  const analysisResult = {
-    companyId,
-    url: websiteUrl,
-    status: 'analysis_pending',
-    message: 'AI analysis will be performed here.'
+  try {
+    // Use the summarizeWebsite function to analyze the website
+    const result = await summarizeWebsite({ url: websiteUrl })
+    
+    // Return the brand details with the company ID
+    const analysisResult = {
+      companyId,
+      url: websiteUrl,
+      status: 'analysis_complete',
+      ...result
+    }
+    
+    SuccessResponse.send({ res, data: analysisResult })
+  } catch (error) {
+    log.error('Error analyzing website:', error)
+    res.status(500).send({ 
+      message: error instanceof Error ? error.message : 'Failed to analyze website',
+      status: 'analysis_failed'
+    })
   }
-  SuccessResponse.send({ res, data: analysisResult })
 })
 
 export { router as companyRoutes }

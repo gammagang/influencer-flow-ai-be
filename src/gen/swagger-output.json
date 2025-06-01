@@ -26,7 +26,7 @@
         }
       }
     },
-    "/api/company/me": {
+    "/api/me": {
       "get": {
         "description": "",
         "responses": {
@@ -44,18 +44,8 @@
         }
       }
     },
-    "/api/company": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/company/{companyId}/analyze": {
-      "put": {
+    "/api/{companyId}/analyze": {
+      "get": {
         "description": "",
         "parameters": [
           {
@@ -77,6 +67,9 @@
         "responses": {
           "400": {
             "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
