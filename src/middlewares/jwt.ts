@@ -60,6 +60,7 @@ export function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
     const token = authHeader.split(' ')[1]
     // Note: decode only, no signature verification as per requirement
     const decoded = jwt.decode(token)
+    log.info('JWT Middleware triggered for request:', decoded)
 
     if (!decoded) throw new NotAuthorizedError('Invalid token')
 

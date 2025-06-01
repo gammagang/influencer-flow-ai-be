@@ -79,7 +79,9 @@
             }
           }
         }
-      },
+      }
+    },
+    "/api/company/mine": {
       "get": {
         "description": "",
         "parameters": [

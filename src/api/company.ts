@@ -1,4 +1,5 @@
 import { sql } from '@/libs/db'
+import { log } from '@/libs/logger'
 
 interface CreateCompanyInput {
   name: string
@@ -51,7 +52,7 @@ export async function findCompanyByUserId(userId: string): Promise<CompanyRow | 
     LIMIT 1
   `
 
-  console.log('findCompanyByUserId result:', result)
+  log.debug('findCompanyByUserId result:', { userId, result })
 
   return result.length ? (result[0] as CompanyRow) : null
 }

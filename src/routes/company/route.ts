@@ -8,7 +8,8 @@ import {
   UpdateCompanyMeReqSchema
 } from './validate'
 import { summarizeWebsite } from '@/api/summarize'
-import { createCompany } from '@/api/company'
+import { createCompany, findCompanyByUserId } from '@/api/company'
+import { NotFoundError } from '@/errors/not-found-error'
 
 const companyRoutes = Router()
 
@@ -36,15 +37,19 @@ companyRoutes.post('/', async (req: Request, res: Response) => {
   }
 })
 
-companyRoutes.get('/', async (req: Request, res: Response) => {
-  const sampleCompany = {
-    id: 'company-uuid-123',
-    name: 'Acme Corp',
-    description: 'Leading online store',
-    website: 'https://acme.corp',
-    meta: { enrichedData: '...' }
+// Get my company API
+companyRoutes.get('/mine', async (req: Request, res: Response) => {
+  const userId = req.user?.sub
+  log.info('Fetching company for user:', userId)
+
+  if (!userId) {
+    throw new NotFoundError('Company', 'You dont own a company', req.path)
   }
-  SuccessResponse.send({ res, data: [sampleCompany] })
+
+  const company = await findCompanyByUserId(userId)
+  if (!company?.id) throw new NotFoundError('Company', 'No company found for the user', req.path)
+
+  SuccessResponse.send({ res, data: company })
 })
 
 companyRoutes.get('/analyze', async (req: Request, res: Response) => {
