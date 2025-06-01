@@ -13,8 +13,8 @@ import { createCompany } from '@/api/company'
 const companyRoutes = Router()
 
 companyRoutes.post('/', async (req: Request, res: Response) => {
-  const { name, website, category, description, phone, owner } = req.body
-  const body = { name, website, category, description, phone, owner }
+  const { name, website, category, description, phone } = req.body
+  const body = { name, website, category, description, phone }
 
   const validatedBody = validateRequest(CreateCompanyReqSchema, body, req.path)
 
@@ -23,7 +23,7 @@ companyRoutes.post('/', async (req: Request, res: Response) => {
       name: validatedBody.name,
       website: validatedBody.website,
       category: validatedBody.category,
-      owner: validatedBody.owner,
+      owner: req.user!['email'],
       description: validatedBody.description || null,
       user_id: req.user!['sub'],
       meta: { phone: validatedBody.phone }
