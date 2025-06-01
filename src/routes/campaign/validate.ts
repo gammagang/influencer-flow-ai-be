@@ -53,7 +53,7 @@ export const AddCreatorToCampaignReqSchema = z.object({
     email: z.string().email({ message: 'Invalid email address' }).nullable().optional(),
     age: z.number().int().positive().optional(),
     gender: z.string().optional(),
-    location: z.string().optional(),
+    location: z.string().nullable().optional(),
     tier: z.string().optional(),
     engagement_rate: z.number().positive().optional(),
     phone: z.string().nullable().optional(),
