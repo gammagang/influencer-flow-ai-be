@@ -1,10 +1,11 @@
 import { Router } from 'express'
-import { companyRoutes } from './company/route'
-import { campaignsRouter } from './campaign/route'
-import { creatorsRouter } from './creator/route'
 import { campaignCreatorRouter } from './campaign-creator/route'
-import { contractsRouter } from './contracts/route'
+import { campaignsRouter } from './campaign/route'
+import { companyRoutes } from './company/route'
 import { contentRouter } from './content/route'
+import { contractsRouter } from './contracts/route'
+import { creatorsRouter } from './creator/route'
+import { elevenLabsRouter } from './elevenlabs/route'
 import { webhooksRouter } from './webhook/route'
 
 const router = Router()
@@ -16,5 +17,6 @@ router.use(campaignCreatorRouter)
 router.use('/contracts', contractsRouter)
 router.use('/content', contentRouter)
 router.use('/webhook', webhooksRouter)
+router.use('/elevenlabs', elevenLabsRouter)
 
 export { router as allRoutes }

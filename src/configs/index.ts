@@ -8,7 +8,8 @@ export const configs = () => ({
     correlationIdField: process.env.CORR_ID || 'x-correlation-id'
   },
   groqApiKey: process.env.GROQ_API_KEY || '',
-  ylyticApiKey: process.env.YLYTIC_API_KEY || ''
+  ylyticApiKey: process.env.YLYTIC_API_KEY || '',
+  elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || ''
 })
 
 export default configs()
