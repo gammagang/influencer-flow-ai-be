@@ -10,10 +10,10 @@ import { webhooksRouter } from './webhook/route'
 
 const router = Router()
 
-router.use(companyRoutes)
-router.use(campaignsRouter)
-router.use(creatorsRouter)
-router.use(campaignCreatorRouter)
+router.use('/company', companyRoutes)
+router.use('/campaign', campaignsRouter)
+router.use('/creator', creatorsRouter)
+router.use('/campaign-creator', campaignCreatorRouter)
 router.use('/contracts', contractsRouter)
 router.use('/content', contentRouter)
 router.use('/webhook', webhooksRouter)

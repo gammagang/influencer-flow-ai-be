@@ -11,6 +11,8 @@ import { mErrorHandler } from '@/middlewares/error-handler'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '@/gen/swagger-output.json' // New import
 
+import { jwtMiddleware } from '@/middlewares/jwt'
+
 import { allRoutes } from './routes'
 
 const app = express()
@@ -32,7 +34,10 @@ app.set('trust proxy', true)
 // Swagger UI setup
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)) // Use swagger-output.json
 
-app.use('/api', allRoutes)
+// Apply JWT middleware to all API routes except healthcheck
+app.use('/api', jwtMiddleware, allRoutes)
+
+// import { jwtMiddleware } from '@/middlewares/jwt'
 
 app.get('/healthcheck', async (_: Request, res: Response) => {
   SuccessResponse.send({

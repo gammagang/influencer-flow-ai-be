@@ -18,6 +18,23 @@ const doc = {
       url: 'https://influencer-flow-ai-be.onrender.com',
       description: 'Prod server'
     }
+  ],
+  // Adding security definitions for JWT Bearer token
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Enter your JWT token in the format: Bearer <token>'
+      }
+    }
+  },
+  // Apply security globally to all operations
+  security: [
+    {
+      bearerAuth: []
+    }
   ]
   // consumes and produces are generally not needed at the top level in OpenAPI 3.0
   // They are defined per operation in requestBody.content and responses.content

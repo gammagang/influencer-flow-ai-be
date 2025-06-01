@@ -6,9 +6,9 @@ import { CreateCompanyReqSchema, UpdateCompanyMeReqSchema } from './validate'
 import { summarizeWebsite } from '@/api/summarize'
 import { createCompany } from '@/api/company'
 
-const router = Router()
+const companyRoutes = Router()
 
-router.post('/company', async (req: Request, res: Response) => {
+companyRoutes.post('/', async (req: Request, res: Response) => {
   const { name, website, category, description, phone } = req.body
   const body = { name, website, category, description, phone }
 
@@ -30,7 +30,8 @@ router.post('/company', async (req: Request, res: Response) => {
     throw error
   }
 })
-router.get(`/company`, async (req: Request, res: Response) => {
+
+companyRoutes.get('/', async (req: Request, res: Response) => {
   const sampleCompany = {
     id: 'company-uuid-123',
     name: 'Acme Corp',
@@ -41,7 +42,7 @@ router.get(`/company`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: [sampleCompany] })
 })
 
-router.get(`/company/:companyId`, async (req: Request, res: Response) => {
+companyRoutes.get('/:companyId', async (req: Request, res: Response) => {
   const sampleCompany = {
     id: 'company-uuid-123',
     name: 'Acme Corp',
@@ -52,7 +53,7 @@ router.get(`/company/:companyId`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: sampleCompany })
 })
 
-router.put(`/company/:companyId`, async (req: Request, res: Response) => {
+companyRoutes.put('/:companyId', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(UpdateCompanyMeReqSchema, req.body, req.path)
 
   const updatedCompany = {
@@ -65,7 +66,7 @@ router.put(`/company/:companyId`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCompany })
 })
 
-router.get('/:companyId/analyze', async (req: Request, res: Response) => {
+companyRoutes.get('/:companyId/analyze', async (req: Request, res: Response) => {
   log.info('Controller: GET /:companyId/analyze')
   const { companyId } = req.params
   const websiteUrl = req.query.url as string
@@ -96,4 +97,4 @@ router.get('/:companyId/analyze', async (req: Request, res: Response) => {
   }
 })
 
-export { router as companyRoutes }
+export { companyRoutes }
