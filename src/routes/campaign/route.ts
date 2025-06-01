@@ -1,6 +1,5 @@
 import { Router, type Request, type Response } from 'express'
 import { SuccessResponse } from '@/libs/success-response'
-import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import {
   CreateCampaignReqSchema,
@@ -9,6 +8,8 @@ import {
 } from './validate'
 import { NotFoundError } from '@/errors/not-found-error'
 import { createCampaign } from '@/api/campaign'
+import { findCompanyByOwner } from '@/api/company'
+import { BadRequestError } from '@/errors/bad-request-error'
 
 const router = Router()
 
@@ -44,8 +45,20 @@ const mockCampaigns: any[] = [
   }
 ]
 
-router.get('/campaign', async (req: Request, res: Response) => {
-  log.info('Controller: GET /campaign')
+router.post('/', async (req: Request, res: Response) => {
+  const { name, description, startDate, endDate } = req.body
+  const body = { name, description, startDate, endDate }
+
+  const company = await findCompanyByOwner(req.user?.sub || '')
+  if (!company?.id) throw new BadRequestError('No company found for the user')
+
+  const validatedBody = validateRequest(CreateCampaignReqSchema, body, req.path)
+  const campaign = await createCampaign(validatedBody, company.id)
+
+  SuccessResponse.send({ res, data: campaign, status: 201 })
+})
+
+router.get('/', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
 
   let filteredCampaigns = [...mockCampaigns]
@@ -76,8 +89,7 @@ router.get('/campaign', async (req: Request, res: Response) => {
   })
 })
 
-router.get('/campaign/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: GET /campaign/${req.params.id}`)
+router.get('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
   const campaign = mockCampaigns.find((c) => c.id === campaignId)
 
@@ -91,20 +103,7 @@ router.get('/campaign/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign })
 })
 
-router.post('/campaign', async (req: Request, res: Response) => {
-  log.info('Controller: POST /campaign')
-
-  const { name, description, startDate, endDate } = req.body
-  const body = { name, description, startDate, endDate }
-
-  const validatedBody = validateRequest(CreateCampaignReqSchema, body, req.path)
-  const campaign = await createCampaign(validatedBody)
-
-  SuccessResponse.send({ res, data: campaign, status: 201 })
-})
-
-router.put('/campaign/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /campaign/${req.params.id}`)
+router.put('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
   const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
 
@@ -127,8 +126,7 @@ router.put('/campaign/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCampaign })
 })
 
-router.delete('/campaign/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: DELETE /campaign/${req.params.id}`)
+router.delete('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
 
   const campaignIndex = mockCampaigns.findIndex((c) => c.id === campaignId)
