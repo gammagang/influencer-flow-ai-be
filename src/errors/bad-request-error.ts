@@ -1,4 +1,5 @@
 import { CustomError } from './custom-error'
+import { RequestValidationError } from './request-validation-error'
 
 export class BadRequestError extends CustomError {
   statusCode = 400
@@ -10,6 +11,7 @@ export class BadRequestError extends CustomError {
     public instance: string
   ) {
     super(message)
+    Object.setPrototypeOf(this, RequestValidationError.prototype)
   }
 
   serializeErrors() {
