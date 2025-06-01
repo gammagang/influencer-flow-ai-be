@@ -1,5 +1,4 @@
 import { Response } from 'express'
-import { Messages } from './constants'
 
 type SuccessCodes = 200 | 201 | 204
 
@@ -16,7 +15,7 @@ export interface ISuccessResponse<T extends any> {
  */
 export abstract class SuccessResponse {
   static send<T>(params: ISuccessResponse<T>) {
-    const { res, data = null, title = Messages.Success, status = 200, detail = '' } = params
-    res.status(status).send({ title, detail, status, data })
+    const { res, data = null, status = 200 } = params
+    res.status(status).send({ data })
   }
 }

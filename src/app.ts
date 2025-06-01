@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express'
 import 'express-async-errors' // This handles all async errors seamlessly
 import helmet from 'helmet'
 import compression from 'compression'
+import cors from 'cors'
 
 import { SuccessResponse } from '@/libs/success-response'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -14,6 +15,16 @@ import swaggerDocument from '@/gen/swagger-output.json' // New import
 import { allRoutes } from './routes'
 
 const app = express()
+
+// CORS configuration to allow frontend requests
+app.use(
+  cors({
+    origin: ['http://localhost:8080', 'http://localhost:3000'], // Allow your frontend
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  })
+)
 
 // Raw body parser for ElevenLabs - must come BEFORE express.json()
 app.use('/api/elevenlabs', express.raw({ type: '*/*' }))

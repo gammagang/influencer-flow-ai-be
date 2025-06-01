@@ -60,19 +60,56 @@ router.get('/:companyId/analyze', async (req: Request, res: Response) => {
   try {
     // Use the summarizeWebsite function to analyze the website
     const result = await summarizeWebsite({ url: websiteUrl })
-    
-    // Return the brand details with the company ID
+
+    // Map the AI response to frontend fields
     const analysisResult = {
       companyId,
-      url: websiteUrl,
-      status: 'analysis_complete',
-      ...result
+      brandName: result.brandDetails.brandName || '',
+      websiteUrl: websiteUrl,
+      contactName: result.brandDetails.contactName || '',
+      phone: result.brandDetails.phone || '',
+      description: result.brandDetails.description || '',
+      industry: result.brandDetails.industry || '',
+      targetAudience: result.brandDetails.targetAudience || ''
     }
-    
+
     SuccessResponse.send({ res, data: analysisResult })
   } catch (error) {
     log.error('Error analyzing website:', error)
-    res.status(500).send({ 
+    res.status(500).send({
+      message: error instanceof Error ? error.message : 'Failed to analyze website',
+      status: 'analysis_failed'
+    })
+  }
+})
+
+router.get('/analyze', async (req: Request, res: Response) => {
+  log.info('Controller: GET /analyze')
+  const websiteUrl = req.query.url as string
+
+  if (!websiteUrl) {
+    return res.status(400).send({ message: 'Missing URL query parameter' })
+  }
+
+  try {
+    // Use the summarizeWebsite function to analyze the website
+    const result = await summarizeWebsite({ url: websiteUrl })
+
+    // Map the AI response to frontend fields
+    const analysisResult = {
+      brandName: result.brandDetails.brandName || '',
+      websiteUrl: websiteUrl,
+      contactName: result.brandDetails.contactName || '',
+      phone: result.brandDetails.phone || '',
+      description: result.brandDetails.description || '',
+      industry: result.brandDetails.industry || '',
+      targetAudience: result.brandDetails.targetAudience || ''
+    }
+
+    SuccessResponse.send({ res, data: analysisResult })
+  } catch (error) {
+    log.error('Error analyzing website:', error)
+    res.status(500).send({
       message: error instanceof Error ? error.message : 'Failed to analyze website',
       status: 'analysis_failed'
     })
