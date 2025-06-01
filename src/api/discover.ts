@@ -4,7 +4,7 @@ import { log } from '@/libs/logger'
 // const YLYTIC_API_BASE_URL = 'https://app.ylytic.com/ylytic/admin/api/v1/search'
 const YLYTIC_API_BASE_URL = 'https://dashboard.ylytic.com/ylytic/admin/api/v1/search'
 
-export type ConnectorType = 'instagram' | 'youtube' | 'tiktok'
+export type ConnectorType = 'instagram' | 'youtube' | 'tiktok' | 'twitter' | 'facebook'
 export type TierType =
   | 'early' // 0-1k
   | 'nano' // 1k-10k
@@ -57,7 +57,7 @@ export interface DiscoverCreatorParams {
   efr_range?: EffectiveFollowerRateRangeType
   hashtags?: string
   brand_mentions?: string
-  gender?: GenderType[] // Changed
+  gender?: GenderType // Changed from array to single value
   agegroup?: AgeGroupType[] // Changed
   language?: string[] // New
   sortby?: string // New

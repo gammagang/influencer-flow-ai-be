@@ -48,8 +48,9 @@ export const DiscoverCreatorsQuerySchema = z.object({
   language: z.array(z.string()).optional(), // E.g. ["en", "es"]
   category: z.array(z.string()).optional(), // E.g. ["Fashion", "Beauty"]
   er: z.array(z.string()).optional(), // Engagement Rate, E.g. ["1-2", "2-3"]
-  gender: z.array(z.string()).optional(), // Gender filter, E.g. ["male", "female"]
-  bio: z.string().optional() // Keyword search in bio
+  gender: z.string().optional(), // Gender filter, single value only
+  bio: z.string().optional(), // Keyword search in bio
+  platform: z.enum(['instagram', 'tiktok', 'youtube', 'twitter', 'facebook']).optional() // Platform filter
 })
 
 export type DiscoverCreatorsQuery = z.infer<typeof DiscoverCreatorsQuerySchema>

@@ -17,7 +17,9 @@ import {
   discoverCreator,
   type DiscoverCreatorParams,
   type TierType,
-  type EngagementRateType
+  type EngagementRateType,
+  type GenderType,
+  type ConnectorType
 } from '@/api/discover'
 
 const router = Router()
@@ -73,18 +75,29 @@ const mockCreators: any[] = [
 router.get('/discover', async (req: Request, res: Response) => {
   log.info('Controller: GET /discover')
 
-  // Parse query parameters
-  const country = req.query.country
-  const tier = req.query.tier
-  const er = req.query.er
-  const gender = req.query.gender
-  const category = req.query.category
-  const language = req.query.language
-  const bio = req.query.bio
-  const platform = req.query.platform
+  // Parse query parameters - handle arrays correctly
+  const country = req.query.country as string | undefined
+  const tier = Array.isArray(req.query.tier)
+    ? req.query.tier
+    : req.query.tier
+      ? [req.query.tier]
+      : undefined
+  const er = Array.isArray(req.query.er) ? req.query.er : req.query.er ? [req.query.er] : undefined
+  const gender = req.query.gender as string | undefined
+  const category = Array.isArray(req.query.category)
+    ? req.query.category
+    : req.query.category
+      ? [req.query.category]
+      : undefined
+  const language = Array.isArray(req.query.language)
+    ? req.query.language
+    : req.query.language
+      ? [req.query.language]
+      : undefined
+  const bio = req.query.bio as string | undefined
+  const platform = req.query.platform as string | undefined
   const limit = req.query.limit ? Number(req.query.limit) : 12
   const skip = req.query.skip ? Number(req.query.skip) : 0
-
   const queryObj = {
     country,
     tier,
@@ -92,7 +105,8 @@ router.get('/discover', async (req: Request, res: Response) => {
     gender,
     category,
     language,
-    bio
+    bio,
+    platform
   }
 
   // Validate request using existing schema
@@ -100,20 +114,18 @@ router.get('/discover', async (req: Request, res: Response) => {
     DiscoverCreatorsQuerySchema,
     queryObj,
     req.path
-  ) as DiscoverCreatorsQuery
-
-  // Build discovery parameters
+  ) as DiscoverCreatorsQuery // Build discovery parameters
   const discoveryParams: DiscoverCreatorParams = {
     country: validatedQuery.country,
     tier: validatedQuery.tier as TierType[] | undefined,
     language: validatedQuery.language,
     category: validatedQuery.category,
     er: validatedQuery.er as EngagementRateType[] | undefined,
-    gender: validatedQuery.gender as any,
+    gender: validatedQuery.gender as GenderType | undefined,
     bio: validatedQuery.bio,
     limit,
     skip,
-    connector: (platform as any) || 'instagram' // Default to Instagram
+    connector: (validatedQuery.platform as ConnectorType) || 'instagram' // Default to Instagram
   }
 
   try {
