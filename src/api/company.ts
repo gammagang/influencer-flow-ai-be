@@ -6,6 +6,7 @@ interface CreateCompanyInput {
   category: string
   owner: string
   description: string | null
+  user_id: string
   meta?: Record<string, any>
 }
 
@@ -17,6 +18,7 @@ export async function createCompany(input: CreateCompanyInput) {
       category,
       owner_name,
       description,
+      user_id,
       meta
     ) VALUES (
       ${input.name},
@@ -24,6 +26,7 @@ export async function createCompany(input: CreateCompanyInput) {
       ${input.category},
       ${input.owner},
       ${input.description},
+      ${input.user_id},
       ${JSON.stringify(input.meta || {})}::jsonb
     )
     RETURNING *
