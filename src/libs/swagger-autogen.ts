@@ -15,8 +15,12 @@ const doc = {
   },
   servers: [
     {
-      url: configs.swaggerHost, // Use environment variable or fallback
-      description: 'Development server'
+      url: configs.host, // Use environment variable or fallback
+      description: 'Local server'
+    },
+    {
+      url: 'https://influencer-flow-ai-be.onrender.com',
+      description: 'Prod server'
     }
   ]
   // consumes and produces are generally not needed at the top level in OpenAPI 3.0
