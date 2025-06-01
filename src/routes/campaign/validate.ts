@@ -5,10 +5,8 @@ import { z } from 'zod'
 export const CreateCampaignReqSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   description: z.string().optional(),
-  startDate: z.string().datetime({ message: 'Invalid start date format' }),
-  endDate: z.string().datetime({ message: 'Invalid end date format' }),
-  budget: z.number().positive({ message: 'Budget must be a positive number' }),
-  companyId: z.string().uuid({ message: 'Invalid company ID' }) // Assuming campaigns are linked to a company
+  startDate: z.string().date('Invalid start date format'),
+  endDate: z.string().date('Invalid end date format')
 })
 
 export type CreateCampaignReq = z.infer<typeof CreateCampaignReqSchema>
@@ -16,8 +14,8 @@ export type CreateCampaignReq = z.infer<typeof CreateCampaignReqSchema>
 export const UpdateCampaignReqSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }).optional(),
   description: z.string().optional(),
-  startDate: z.string().datetime({ message: 'Invalid start date format' }).optional(),
-  endDate: z.string().datetime({ message: 'Invalid end date format' }).optional(),
+  startDate: z.string().date('Invalid start date format').optional(),
+  endDate: z.string().date('Invalid end date format').optional(),
   budget: z.number().positive({ message: 'Budget must be a positive number' }).optional()
 })
 

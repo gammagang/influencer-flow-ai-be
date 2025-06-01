@@ -8,6 +8,7 @@ import {
   ListCampaignsQuerySchema
 } from './validate'
 import { NotFoundError } from '@/errors/not-found-error'
+import { createCampaign } from '@/api/campaign'
 
 const router = Router()
 
@@ -92,18 +93,14 @@ router.get('/campaign/:id', async (req: Request, res: Response) => {
 
 router.post('/campaign', async (req: Request, res: Response) => {
   log.info('Controller: POST /campaign')
-  const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
 
-  const newCampaign = {
-    id: `campaign-uuid-${Date.now()}`,
-    ...validatedBody,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    meta: { initialEnrichmentStatus: 'pending' }
-  }
-  mockCampaigns.push(newCampaign)
-  SuccessResponse.send({ res, data: newCampaign, status: 201 })
+  const { name, description, startDate, endDate } = req.body
+  const body = { name, description, startDate, endDate }
+
+  const validatedBody = validateRequest(CreateCampaignReqSchema, body, req.path)
+  const campaign = await createCampaign(validatedBody)
+
+  SuccessResponse.send({ res, data: campaign, status: 201 })
 })
 
 router.put('/campaign/:id', async (req: Request, res: Response) => {
