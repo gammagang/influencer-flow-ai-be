@@ -53,7 +53,7 @@ const mockContracts: any[] = [
   }
 ]
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(CreateContractReqSchema, req.body, req.path)
   const newContract = {
     id: `contract-uuid-${mockContracts.length + 1}`,
@@ -66,7 +66,7 @@ router.post('/', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newContract, status: 201 })
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListContractsQuerySchema, req.query, req.path)
   const {
     campaignId,

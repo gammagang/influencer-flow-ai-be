@@ -22,7 +22,7 @@
         }
       }
     },
-    "/api/company/company/me": {
+    "/api/company/me": {
       "get": {
         "description": "",
         "responses": {
@@ -40,7 +40,7 @@
         }
       }
     },
-    "/api/company/company": {
+    "/api/company": {
       "post": {
         "description": "",
         "responses": {
@@ -50,7 +50,7 @@
         }
       }
     },
-    "/api/campaigns/campaigns": {
+    "/api/campaigns": {
       "get": {
         "description": "",
         "responses": {
@@ -68,81 +68,7 @@
         }
       }
     },
-    "/api/campaigns/campaigns/{id}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "delete": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/creators/creators": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/creators/creators/{id}": {
+    "/api/campaigns/{id}": {
       "get": {
         "description": "",
         "parameters": [
@@ -198,7 +124,7 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator": {
+    "/api/creators": {
       "get": {
         "description": "",
         "responses": {
@@ -216,7 +142,81 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator/{linkId}": {
+    "/api/creators/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/campaign-creator": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/campaign-creator/{linkId}": {
       "get": {
         "description": "",
         "parameters": [
@@ -272,7 +272,7 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator/{linkId}/payments": {
+    "/api/campaign-creator/{linkId}/payments": {
       "post": {
         "description": "",
         "parameters": [
@@ -285,24 +285,6 @@
             }
           }
         ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/contracts/": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "description": "",
         "responses": {
           "default": {
             "description": ""
@@ -366,24 +348,6 @@
         }
       }
     },
-    "/api/content/": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/content/{contentId}": {
       "get": {
         "description": "",
@@ -426,6 +390,82 @@
         "parameters": [
           {
             "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/webhooks/{webhookId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/webhooks/{webhookId}/simulate": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "webhookId",
             "in": "path",
             "required": true,
             "schema": {

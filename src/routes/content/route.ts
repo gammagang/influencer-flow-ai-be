@@ -60,7 +60,7 @@ const mockContent: any[] = [
   }
 ]
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(CreateContentReqSchema, req.body, req.path)
   const newContent = {
     id: `content-uuid-${mockContent.length + 1}`,
@@ -74,7 +74,7 @@ router.post('/', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newContent, status: 201 })
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListContentQuerySchema, req.query, req.path)
   const {
     campaignId,
