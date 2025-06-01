@@ -189,7 +189,6 @@ router.get('/discover', async (req: Request, res: Response) => {
 })
 
 router.get('/creator', async (req: Request, res: Response) => {
-  log.info('Controller: GET /creator')
   const validatedQuery = validateRequest(ListCreatorsQuerySchema, req.query, req.path)
 
   let filteredCreators = [...mockCreators]
@@ -247,7 +246,6 @@ router.get('/creator/:id', async (req: Request, res: Response) => {
 })
 
 router.post('/creator', async (req: Request, res: Response) => {
-  log.info('Controller: POST /creator')
   const validatedBody = validateRequest(CreateCreatorReqSchema, req.body, req.path)
 
   const newCreator = {
@@ -295,8 +293,6 @@ router.delete('/creator/:id', async (req: Request, res: Response) => {
 })
 
 router.post('/add-creator-to-campaign', async (req: Request, res: Response) => {
-  log.info('Controller: POST /add-creator-to-campaign')
-
   // Validate request body using schema
   const validatedBody = validateRequest(AddCreatorToCampaignReqSchema, req.body, req.path)
 

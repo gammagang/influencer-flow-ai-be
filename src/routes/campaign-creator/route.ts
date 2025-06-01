@@ -56,7 +56,6 @@ const mockCampaignCreatorLinks: any[] = [
 // --- Campaign-Creator Link Routes ---
 
 router.get('/campaign-creator', async (req: Request, res: Response) => {
-  log.info('Controller: GET /campaign-creator')
   const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
 
   // TODO: Implement actual filtering from a database
@@ -92,7 +91,6 @@ router.get('/campaign-creator', async (req: Request, res: Response) => {
 })
 
 router.post('/campaign-creator', async (req: Request, res: Response) => {
-  log.info('Controller: POST /campaign-creator')
   const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
 
   // TODO: Check if campaign and creator exist before linking
