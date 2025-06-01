@@ -50,20 +50,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   // Get the authenticated user's company
   const company = await findCompanyByUserId(req.user?.sub || '')
-  if (!company?.id) {
-    return SuccessResponse.send({
-      res,
-      data: {
-        items: [],
-        pagination: {
-          total: 0,
-          page: 0,
-          limit: 10,
-          totalPages: 0
-        }
-      }
-    })
-  }
+  if (!company?.id) throw new BadRequestError('No company found for the user')
 
   // Fetch campaigns from database for the user's company
   let campaigns = await getCampaignsByCompanyId(company.id.toString())
