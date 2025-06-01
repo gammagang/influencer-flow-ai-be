@@ -1,4 +1,10 @@
+import 'dotenv/config'
+
+import configs from '@/configs'
 import swaggerAutogen from 'swagger-autogen'
+import { log } from './logger'
+
+log.info('Generating Swagger documentation...', configs.swaggerHost)
 
 const doc = {
   info: {
@@ -9,8 +15,12 @@ const doc = {
   },
   servers: [
     {
-      url: 'http://localhost:3000', // or your actual host
-      description: 'Development server'
+      url: configs.host, // Use environment variable or fallback
+      description: 'Local server'
+    },
+    {
+      url: 'https://influencer-flow-ai-be.onrender.com',
+      description: 'Prod server'
     }
   ]
   // consumes and produces are generally not needed at the top level in OpenAPI 3.0

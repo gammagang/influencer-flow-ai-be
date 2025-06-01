@@ -2,12 +2,22 @@ import { Router, type Request, type Response } from 'express'
 import { SuccessResponse } from '@/libs/success-response'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
-import { CreateCreatorReqSchema, UpdateCreatorReqSchema, ListCreatorsQuerySchema } from './validate'
+import {
+  CreateCreatorReqSchema,
+  UpdateCreatorReqSchema,
+  ListCreatorsQuerySchema,
+  DiscoverCreatorsQuerySchema,
+  type DiscoverCreatorsQuery // Added type import
+} from './validate'
 import { NotFoundError } from '@/errors/not-found-error'
+import {
+  discoverCreator,
+  type DiscoverCreatorParams,
+  type TierType,
+  type EngagementRateType
+} from '@/api/discover'
 
 const router = Router()
-
-// TODO: Replace with actual database interactions and service logic
 
 // Mock database for creators
 const mockCreators: any[] = [
@@ -39,12 +49,51 @@ const mockCreators: any[] = [
   }
 ]
 
+router.get('/creator/discover', async (req: Request, res: Response) => {
+  log.info('Controller: GET /creator/discover')
+
+  const country = req.query.country
+  const tier = req.query.tier
+  const er = req.query.er
+  const gender = req.query.gender
+  const category = req.query.category
+  const language = req.query.language
+  const bio = req.query.bio
+
+  const queryObj = {
+    country,
+    tier,
+    er,
+    gender,
+    category,
+    language,
+    bio
+  }
+  // Cast validatedQuery to the specific type for type safety
+  const validatedQuery = validateRequest(
+    DiscoverCreatorsQuerySchema,
+    queryObj,
+    req.path
+  ) as DiscoverCreatorsQuery
+
+  const discoveryParams: DiscoverCreatorParams = {
+    // connector: validatedQuery.platform, // platform is currently commented out in schema
+    country: validatedQuery.country,
+    tier: validatedQuery.tier as TierType[] | undefined,
+    language: validatedQuery.language,
+    category: validatedQuery.category,
+    er: validatedQuery.er as EngagementRateType[] | undefined
+  }
+
+  const discoveryResult = await discoverCreator(discoveryParams)
+  // return res.status(200).send({ data: discoveryResult })
+  SuccessResponse.send({ res, data: discoveryResult })
+})
+
 router.get('/creator', async (req: Request, res: Response) => {
   log.info('Controller: GET /creator')
-  // validatedQuery will have defaults applied by Zod for page and limit.
   const validatedQuery = validateRequest(ListCreatorsQuerySchema, req.query, req.path)
 
-  // TODO: Implement actual filtering, pagination, and sorting from a database
   let filteredCreators = [...mockCreators]
 
   if (validatedQuery.platform) {
@@ -68,7 +117,6 @@ router.get('/creator', async (req: Request, res: Response) => {
     )
   }
 
-  // page and limit will have default values from the schema if not provided
   const page = validatedQuery.page!
   const limit = validatedQuery.limit!
   const startIndex = (page - 1) * limit
