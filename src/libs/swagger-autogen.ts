@@ -12,7 +12,7 @@ const doc = {
   },
   servers: [
     {
-      url: configs.host, // Use environment variable or fallback
+      url: configs.swaggerHost, // Use environment variable or fallback
       description: 'Development server'
     }
   ]
