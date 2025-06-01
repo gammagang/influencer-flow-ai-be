@@ -43,7 +43,6 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
     const conversationId = validatedData.data.conversation_id
     const dynamicVars = validatedData.data.conversation_initiation_client_data.dynamic_variables
     const campaignCreatorId = dynamicVars?.campaign_creator_id
-    const contractId = dynamicVars?.contract_id
 
     if (!campaignCreatorId) {
       log.error('No campaign_creator_id found in webhook data', {
@@ -53,9 +52,11 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
       return res.status(400).json({
         error: 'Missing campaign_creator_id in webhook data'
       })
-    } // Determine call outcome
+    }
+
+    // Determine call outcome
     const callOutcome =
-      validatedData.data.analysis.call_successful === 'true' ? 'successful' : 'failed'
+      validatedData.data.analysis.call_successful === 'success' ? 'successful' : 'failed'
 
     // Convert transcript to a more structured format
     const fullTranscript = JSON.stringify(messages)
@@ -67,11 +68,18 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
     const timeline = dataCollectionResults?.timeline || dataCollectionResults?.deadline || null
 
     try {
-      // Store negotiation attempt in database
+      // Debug logging to identify any undefined values
+      log.info('About to insert negotiation attempt with values:', {
+        campaignCreatorId,
+        callOutcome,
+        deliverables,
+        agreedPrice,
+        timeline,
+        transcriptSummary: validatedData.data.analysis.transcript_summary
+      }) // Store negotiation attempt in database
       const result = await sql`
         INSERT INTO negotiation_attempt (
           campaign_creator_id,
-          contract_id,
           negotiation_type,
           started_at,
           ended_at,
@@ -85,7 +93,6 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
           meta
         ) VALUES (
           ${campaignCreatorId},
-          ${contractId},
           'voice_call',
           ${new Date()}, -- Using current time as we don't have exact start time
           ${new Date()}, -- Using current time as call has ended
@@ -105,8 +112,7 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
             original_analysis: validatedData.data.analysis,
             evaluation_criteria_results: validatedData.data.analysis.evaluation_criteria_results,
             data_collection_results: validatedData.data.analysis.data_collection_results
-          })}
-        )
+          })}        )
         RETURNING id
       `
 
@@ -115,14 +121,13 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
       log.info('Successfully stored negotiation attempt:', {
         negotiationAttemptId,
         campaignCreatorId,
-        contractId,
         conversationId,
         outcome: callOutcome,
         transcriptLength: messages.length
       })
 
       // If the call was successful, you might want to update the campaign_creator state
-      if (validatedData.data.analysis.call_successful) {
+      if (validatedData.data.analysis.call_successful === 'success') {
         // TODO: Update campaign_creator current_state if needed
         // TODO: Create or update contract if negotiation was successful
         // TODO: Trigger follow-up actions like sending contracts
@@ -190,9 +195,8 @@ router.put('/store-meta/:id', async (req, res) => {
         SET 
           meta = ${JSON.stringify(bodyData)},
           ended_at = ${new Date()},
-          summary = ${bodyData?.summary || 'Updated with raw data'}
-        WHERE id = ${negotiationAttemptId}
-        RETURNING id, campaign_creator_id, contract_id
+          summary = ${bodyData?.summary || 'Updated with raw data'}        WHERE id = ${negotiationAttemptId}
+        RETURNING id, campaign_creator_id
       `
 
       const updatedRecord = result[0]
@@ -200,7 +204,6 @@ router.put('/store-meta/:id', async (req, res) => {
       log.info('Successfully updated negotiation attempt with meta data:', {
         negotiationAttemptId: updatedRecord.id,
         campaignCreatorId: updatedRecord.campaign_creator_id,
-        contractId: updatedRecord.contract_id,
         bodySize: JSON.stringify(bodyData).length
       })
 
