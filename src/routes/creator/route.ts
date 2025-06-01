@@ -22,7 +22,7 @@ import {
   type ConnectorType
 } from '@/api/discover'
 
-const router = Router()
+const creatorsRouter = Router()
 
 // Helper function to map follower count to tier
 function mapFollowerCountToTier(followers: number): string {
@@ -72,7 +72,7 @@ const mockCreators: any[] = [
   }
 ]
 
-router.get('/discover', async (req: Request, res: Response) => {
+creatorsRouter.get('/discover', async (req: Request, res: Response) => {
   log.info('Controller: GET /discover')
 
   // Parse query parameters - handle arrays correctly
@@ -188,7 +188,7 @@ router.get('/discover', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/creator', async (req: Request, res: Response) => {
+creatorsRouter.get('/creator', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCreatorsQuerySchema, req.query, req.path)
 
   let filteredCreators = [...mockCreators]
@@ -234,7 +234,7 @@ router.get('/creator', async (req: Request, res: Response) => {
   })
 })
 
-router.get('/creator/:id', async (req: Request, res: Response) => {
+creatorsRouter.get('/creator/:id', async (req: Request, res: Response) => {
   log.info(`Controller: GET /creator/${req.params.id}`)
   const creatorId = req.params.id
   const creator = mockCreators.find((c) => c.id === creatorId)
@@ -245,7 +245,7 @@ router.get('/creator/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: creator })
 })
 
-router.post('/creator', async (req: Request, res: Response) => {
+creatorsRouter.post('/creator', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(CreateCreatorReqSchema, req.body, req.path)
 
   const newCreator = {
@@ -259,7 +259,7 @@ router.post('/creator', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newCreator, status: 201 })
 })
 
-router.put('/creator/:id', async (req: Request, res: Response) => {
+creatorsRouter.put('/creator/:id', async (req: Request, res: Response) => {
   log.info(`Controller: PUT /creator/${req.params.id}`)
   const creatorId = req.params.id
   const validatedBody = validateRequest(UpdateCreatorReqSchema, req.body, req.path)
@@ -279,7 +279,7 @@ router.put('/creator/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCreator })
 })
 
-router.delete('/creator/:id', async (req: Request, res: Response) => {
+creatorsRouter.delete('/creator/:id', async (req: Request, res: Response) => {
   log.info(`Controller: DELETE /creator/${req.params.id}`)
   const creatorId = req.params.id
 
@@ -292,7 +292,7 @@ router.delete('/creator/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, status: 204, data: {} })
 })
 
-router.post('/add-creator-to-campaign', async (req: Request, res: Response) => {
+creatorsRouter.post('/add-creator-to-campaign', async (req: Request, res: Response) => {
   // Validate request body using schema
   const validatedBody = validateRequest(AddCreatorToCampaignReqSchema, req.body, req.path)
 
@@ -327,4 +327,4 @@ router.post('/add-creator-to-campaign', async (req: Request, res: Response) => {
   }
 })
 
-export { router as creatorsRouter }
+export { creatorsRouter }

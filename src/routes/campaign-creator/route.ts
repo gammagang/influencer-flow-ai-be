@@ -55,6 +55,22 @@ const mockCampaignCreatorLinks: any[] = [
 
 // --- Campaign-Creator Link Routes ---
 
+router.post('/campaign-creator', async (req: Request, res: Response) => {
+  const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
+
+  // TODO: Check if campaign and creator exist before linking
+  // TODO: Ensure no duplicate link for the same campaignId and creatorId if that's a business rule
+  const newLink = {
+    id: `cc-link-uuid-${Date.now()}`,
+    ...validatedBody,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    payments: []
+  }
+  mockCampaignCreatorLinks.push(newLink)
+  SuccessResponse.send({ res, data: newLink, status: 201 })
+})
+
 router.get('/campaign-creator', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
 
@@ -88,22 +104,6 @@ router.get('/campaign-creator', async (req: Request, res: Response) => {
       }
     }
   })
-})
-
-router.post('/campaign-creator', async (req: Request, res: Response) => {
-  const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
-
-  // TODO: Check if campaign and creator exist before linking
-  // TODO: Ensure no duplicate link for the same campaignId and creatorId if that's a business rule
-  const newLink = {
-    id: `cc-link-uuid-${Date.now()}`,
-    ...validatedBody,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: []
-  }
-  mockCampaignCreatorLinks.push(newLink)
-  SuccessResponse.send({ res, data: newLink, status: 201 })
 })
 
 router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {

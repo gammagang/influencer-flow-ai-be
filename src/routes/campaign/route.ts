@@ -80,7 +80,7 @@ router.get('/', async (req: Request, res: Response) => {
   })
 })
 
-router.post('/add', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const company = await findCompanyByUserId(req.user?.sub || '')
   if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
 

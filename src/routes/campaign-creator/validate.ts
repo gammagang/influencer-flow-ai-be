@@ -3,8 +3,8 @@ import { z } from 'zod'
 // TODO: Define more specific validation schemas as per requirements
 
 export const LinkCreatorToCampaignSchema = z.object({
-  campaignId: z.string().uuid({ message: 'Invalid Campaign ID' }),
-  creatorId: z.string().uuid({ message: 'Invalid Creator ID' }),
+  campaignId: z.number().positive({ message: 'Invalid Campaign ID' }),
+  creatorId: z.string().min(1, { message: 'Invalid Creator ID' }),
   status: z
     .enum(['pending', 'approved', 'rejected', 'active', 'completed'])
     .optional()
