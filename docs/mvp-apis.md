@@ -68,6 +68,7 @@ Create a new company (brand) profile for the authenticated user.
   "name": "Acme Corp",
   "website": "https://acme.com",
   "category": "E-commerce",
+  "phone": "68468",
   "description": "Leading online store"
 }
 ```
@@ -78,18 +79,11 @@ Create a new company (brand) profile for the authenticated user.
 
 ```json
 {
-  "id": "company-uuid",
   "name": "Acme Corp",
-  "ownerName": "Jane Doe",
   "website": "https://acme.com",
   "category": "E-commerce",
-  "description": "Leading online store",
-  "meta": {
-    "summary": "...AI/summary of website...",
-    "vision": "...",
-    "goals": "...",
-    "otherExtractedFields": "..."
-  }
+  "phone": "68468",
+  "description": "Leading online store"
 }
 ```
 

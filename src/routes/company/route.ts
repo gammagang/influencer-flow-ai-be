@@ -4,12 +4,44 @@ import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { CreateCompanyReqSchema, UpdateCompanyMeReqSchema } from './validate'
 import { summarizeWebsite } from '@/api/summarize'
+import { createCompany } from '@/api/company'
 
 const router = Router()
 
-router.get(`/me`, async (req: Request, res: Response) => {
-  log.info(`Controller: GET /me`)
+router.post('/company', async (req: Request, res: Response) => {
+  const { name, website, category, description, phone } = req.body
+  const body = { name, website, category, description, phone }
 
+  const validatedBody = validateRequest(CreateCompanyReqSchema, body, req.path)
+
+  try {
+    const newCompany = await createCompany({
+      name: validatedBody.name,
+      website: validatedBody.website,
+      category: validatedBody.category,
+      owner: 'default-owner', // Replace with actual owner logic
+      description: validatedBody.description || null,
+      meta: { phone: validatedBody.phone }
+    })
+
+    SuccessResponse.send({ res, data: newCompany, status: 201 })
+  } catch (error) {
+    log.error('Failed to create company:', error)
+    throw error
+  }
+})
+router.get(`/company`, async (req: Request, res: Response) => {
+  const sampleCompany = {
+    id: 'company-uuid-123',
+    name: 'Acme Corp',
+    description: 'Leading online store',
+    website: 'https://acme.corp',
+    meta: { enrichedData: '...' }
+  }
+  SuccessResponse.send({ res, data: [sampleCompany] })
+})
+
+router.get(`/company/:companyId`, async (req: Request, res: Response) => {
   const sampleCompany = {
     id: 'company-uuid-123',
     name: 'Acme Corp',
@@ -20,8 +52,7 @@ router.get(`/me`, async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: sampleCompany })
 })
 
-router.put(`/me`, async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /me`)
+router.put(`/company/:companyId`, async (req: Request, res: Response) => {
   const validatedBody = validateRequest(UpdateCompanyMeReqSchema, req.body, req.path)
 
   const updatedCompany = {
@@ -32,20 +63,6 @@ router.put(`/me`, async (req: Request, res: Response) => {
     meta: { triggeredEnrichment: true, oldData: '...', newData: '...' }
   }
   SuccessResponse.send({ res, data: updatedCompany })
-})
-
-router.post('', async (req: Request, res: Response) => {
-  log.info(`Controller: POST `)
-  const validatedBody = validateRequest(CreateCompanyReqSchema, req.body, req.path)
-
-  const newCompany = {
-    id: 'company-uuid-new',
-    name: validatedBody.name,
-    description: validatedBody.description,
-    website: validatedBody.website,
-    meta: { initialEnrichmentStatus: 'pending' }
-  }
-  SuccessResponse.send({ res, data: newCompany, status: 201 })
 })
 
 router.get('/:companyId/analyze', async (req: Request, res: Response) => {
@@ -60,7 +77,7 @@ router.get('/:companyId/analyze', async (req: Request, res: Response) => {
   try {
     // Use the summarizeWebsite function to analyze the website
     const result = await summarizeWebsite({ url: websiteUrl })
-    
+
     // Return the brand details with the company ID
     const analysisResult = {
       companyId,
@@ -68,11 +85,11 @@ router.get('/:companyId/analyze', async (req: Request, res: Response) => {
       status: 'analysis_complete',
       ...result
     }
-    
+
     SuccessResponse.send({ res, data: analysisResult })
   } catch (error) {
     log.error('Error analyzing website:', error)
-    res.status(500).send({ 
+    res.status(500).send({
       message: error instanceof Error ? error.message : 'Failed to analyze website',
       status: 'analysis_failed'
     })

@@ -26,16 +26,42 @@
         }
       }
     },
-    "/api/company/me": {
-      "get": {
+    "/api/company": {
+      "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "example": "any"
+                  },
+                  "website": {
+                    "example": "any"
+                  },
+                  "category": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
         }
       },
-      "put": {
+      "get": {
         "description": "",
         "responses": {
           "default": {
@@ -44,7 +70,45 @@
         }
       }
     },
-    "/api/company/{companyId}/analyze": {
+    "/api/company/{companyId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/{companyId}/analyze": {
       "get": {
         "description": "",
         "parameters": [
