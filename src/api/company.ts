@@ -38,6 +38,24 @@ export async function findCompanyByOwner(ownerName: string): Promise<CompanyRow 
   return result.length ? (result[0] as CompanyRow) : null
 }
 
+/**
+ * Finds a company by user_id
+ * @param userId The user ID to search for
+ * @returns The first company matching the user_id, or null if none found
+ */
+export async function findCompanyByUserId(userId: string): Promise<CompanyRow | null> {
+  const result = await sql`
+    SELECT *
+    FROM company
+    WHERE user_id = ${userId}
+    LIMIT 1
+  `
+
+  console.log('findCompanyByUserId result:', result)
+
+  return result.length ? (result[0] as CompanyRow) : null
+}
+
 export async function createCompany(input: CreateCompanyInput) {
   const result = await sql`
     INSERT INTO company (

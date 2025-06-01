@@ -1,15 +1,15 @@
-import { Router, type Request, type Response } from 'express'
+import { createCampaign } from '@/api/campaign'
+import { findCompanyByUserId } from '@/api/company'
+import { BadRequestError } from '@/errors/bad-request-error'
+import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { validateRequest } from '@/middlewares/validate-request'
+import { Router, type Request, type Response } from 'express'
 import {
   CreateCampaignReqSchema,
-  UpdateCampaignReqSchema,
-  ListCampaignsQuerySchema
+  ListCampaignsQuerySchema,
+  UpdateCampaignReqSchema
 } from './validate'
-import { NotFoundError } from '@/errors/not-found-error'
-import { createCampaign } from '@/api/campaign'
-import { findCompanyByOwner } from '@/api/company'
-import { BadRequestError } from '@/errors/bad-request-error'
 
 const router = Router()
 
@@ -45,14 +45,11 @@ const mockCampaigns: any[] = [
   }
 ]
 
-router.post('/', async (req: Request, res: Response) => {
-  const { name, description, startDate, endDate } = req.body
-  const body = { name, description, startDate, endDate }
-
-  const company = await findCompanyByOwner(req.user?.sub || '')
+router.post('/add', async (req: Request, res: Response) => {
+  const company = await findCompanyByUserId(req.user?.sub || '')
   if (!company?.id) throw new BadRequestError('No company found for the user')
 
-  const validatedBody = validateRequest(CreateCampaignReqSchema, body, req.path)
+  const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
   const campaign = await createCampaign(validatedBody, company.id)
 
   SuccessResponse.send({ res, data: campaign, status: 201 })

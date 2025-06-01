@@ -6,7 +6,19 @@ export const CreateCampaignReqSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   description: z.string().optional(),
   startDate: z.string().date('Invalid start date format'),
-  endDate: z.string().date('Invalid end date format')
+  endDate: z.string().date('Invalid end date format'),
+  // All additional fields that will be stored in meta column
+  ageRange: z.string().optional(),
+  gender: z.string().optional(),
+  interests: z.array(z.string()).optional(),
+  deliverables: z.array(z.string()).optional(),
+  contentGuidelines: z.string().optional(),
+  totalBudget: z.string().optional(),
+  budgetPerCreator: z.string().optional(),
+  paymentModel: z.string().optional(),
+  followerRange: z.string().optional(),
+  minEngagement: z.string().optional(),
+  location: z.string().optional()
 })
 
 export type CreateCampaignReq = z.infer<typeof CreateCampaignReqSchema>
