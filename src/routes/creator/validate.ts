@@ -41,3 +41,14 @@ export const ListCreatorsQuerySchema = z.object({
 })
 
 export type ListCreatorsQuery = z.infer<typeof ListCreatorsQuerySchema>
+
+export const DiscoverCreatorsQuerySchema = z.object({
+  country: z.string().optional(), // Example: 'US'
+  tier: z.array(z.string()).optional(), // E.g. ["10k-100k", "1M-5M"] - maps to Ylytic 'followers'
+  language: z.array(z.string()).optional(), // E.g. ["en", "es"]
+  category: z.array(z.string()).optional(), // E.g. ["Fashion", "Beauty"]
+  er: z.array(z.string()).optional(), // Engagement Rate, E.g. ["1-2", "2-3"]
+  gender: z.array(z.string()).optional() // Engagement Rate, E.g. ["1-2", "2-3"]
+})
+
+export type DiscoverCreatorsQuery = z.infer<typeof DiscoverCreatorsQuerySchema>

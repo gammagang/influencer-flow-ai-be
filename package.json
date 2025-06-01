@@ -12,7 +12,7 @@
     "xxx": "ts-node src/test.ts",
     "build": "rimraf dist && webpack",
     "start": "node dist/main.js",
-    "swagger:gen": "npx ts-node ./src/libs/swagger-autogen.ts"
+    "swagger:gen": "ts-node ./src/libs/swagger-autogen.ts"
   },
   "keywords": [],
   "dependencies": {

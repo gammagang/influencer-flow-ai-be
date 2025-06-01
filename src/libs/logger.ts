@@ -52,7 +52,7 @@ export const log = {
   debug: (message: string, data: any) => {
     logger.debug({ message, data })
   },
-  error: (message: string, error: any) => {
+  error: (message: string, error?: any) => {
     logger.error({ message, error })
   }
 }
