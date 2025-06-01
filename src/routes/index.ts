@@ -5,7 +5,7 @@ import { creatorsRouter } from './creator/route'
 import { campaignCreatorRouter } from './campaign-creator/route'
 import { contractsRouter } from './contracts/route'
 import { contentRouter } from './content/route'
-import { webhooksRouter } from './webhooks/route'
+import { webhooksRouter } from './webhook/route'
 
 const router = Router()
 
@@ -15,6 +15,6 @@ router.use(creatorsRouter)
 router.use(campaignCreatorRouter)
 router.use('/contracts', contractsRouter)
 router.use('/content', contentRouter)
-router.use('/webhooks', webhooksRouter)
+router.use('/webhook', webhooksRouter)
 
 export { router as allRoutes }
