@@ -10,18 +10,29 @@ import { mInitCLS } from '@/middlewares/cls'
 import { mErrorHandler } from '@/middlewares/error-handler'
 
 import swaggerUi from 'swagger-ui-express'
-import swaggerDocument from '@/gen/swagger-output.json' // New import
+import swaggerDocument from '@/gen/swagger-output.json'
 
 import { jwtMiddleware } from '@/middlewares/jwt'
 
 import { allRoutes } from './routes'
+import configs from './configs'
 
 const app = express()
 
-// CORS configuration to allow frontend requests
+const { allowedOrigins } = configs
+
 app.use(
   cors({
-    origin: ['http://localhost:8080', 'http://localhost:3000'], // Allow your frontend
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl requests)
+      if (!origin) return callback(null, true)
+
+      if (!allowedOrigins.includes(origin)) callback(null, true)
+      else {
+        console.log(`Origin ${origin} not allowed by CORS`)
+        callback(null, false)
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
