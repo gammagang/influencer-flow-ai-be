@@ -47,4 +47,26 @@ router.post('/company', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newCompany, status: 201 })
 })
 
+router.put('/company/:companyId/analyze', async (req: Request, res: Response) => {
+  log.info('Controller: PUT /company/:companyId/analyze')
+  const { companyId } = req.params
+  const websiteUrl = req.query.url
+
+  if (!websiteUrl) {
+    // Or handle with a more specific error, e.g., BadRequestError
+    return res.status(400).send({ message: 'Missing URL query parameter' })
+  }
+
+  // TODO: Add AI LLM Integration to analyze the website URL
+  // TODO: Save info in DB using companyId - @monish
+
+  const analysisResult = {
+    companyId,
+    url: websiteUrl,
+    status: 'analysis_pending',
+    message: 'AI analysis will be performed here.'
+  }
+  SuccessResponse.send({ res, data: analysisResult })
+})
+
 export { router as companyRoutes }
