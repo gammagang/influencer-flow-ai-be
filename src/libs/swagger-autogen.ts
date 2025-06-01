@@ -2,6 +2,9 @@ import 'dotenv/config'
 
 import configs from '@/configs'
 import swaggerAutogen from 'swagger-autogen'
+import { log } from './logger'
+
+log.info('Generating Swagger documentation...', configs.swaggerHost)
 
 const doc = {
   info: {
