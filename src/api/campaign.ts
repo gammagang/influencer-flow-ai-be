@@ -53,3 +53,13 @@ export async function createCampaign(campaign: CreateCampaignReq, companyId: str
 
   return result[0]
 }
+
+export async function getCampaignsByCompanyId(companyId: string) {
+  const result = await sql`
+    SELECT *
+    FROM campaign
+    WHERE company_id = ${companyId}
+  `
+
+  return result.map((row) => row) // Convert RowList to plain array
+}

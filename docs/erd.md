@@ -6,6 +6,7 @@ This diagram represents the database schema for the influencer marketing platfor
 erDiagram
     COMPANY {
         bigint id PK
+        bigint user_id FK
         text name
         text owner_name
         text website
@@ -13,7 +14,7 @@ erDiagram
         text description
         jsonb meta
     }
-    
+
     CAMPAIGN {
         bigint id PK
         bigint company_id FK
@@ -24,7 +25,7 @@ erDiagram
         text state
         jsonb meta
     }
-    
+
     CREATOR {
         bigint id PK
         text name
@@ -40,7 +41,7 @@ erDiagram
         text language
         jsonb meta
     }
-    
+
     CAMPAIGN_CREATOR {
         bigint id PK
         bigint campaign_id FK
@@ -51,7 +52,7 @@ erDiagram
         text notes
         jsonb meta
     }
-    
+
     CONTRACT {
         bigint id PK
         bigint campaign_creator_id FK
@@ -62,7 +63,7 @@ erDiagram
         timestamp signed_by_creator_at
         jsonb meta
     }
-    
+
     CONTRACT_AUDIT {
         bigint id PK
         bigint contract_id FK
@@ -72,7 +73,7 @@ erDiagram
         text notes
         jsonb meta
     }
-    
+
     CAMPAIGN_CREATOR_AUDIT {
         bigint id PK
         bigint campaign_creator_id FK
@@ -83,7 +84,7 @@ erDiagram
         text notes
         jsonb meta
     }
-    
+
     NEGOTIATION_ATTEMPT {
         bigint id PK
         bigint campaign_creator_id FK
@@ -100,7 +101,7 @@ erDiagram
         text call_recording_url
         jsonb meta
     }
-    
+
     DELIVERED_CONTENT {
         bigint id PK
         bigint campaign_creator_id FK
@@ -111,7 +112,7 @@ erDiagram
         timestamp verified_at
         jsonb meta
     }
-    
+
     CONTENT_ANALYTICS {
         bigint id PK
         bigint delivered_content_id FK
@@ -124,7 +125,7 @@ erDiagram
         timestamp fetched_at
         jsonb meta
     }
-    
+
     PAYMENT {
         bigint id PK
         bigint campaign_creator_id FK
@@ -137,7 +138,7 @@ erDiagram
         text receipt_url
         jsonb meta
     }
-    
+
     COMPANY ||--o{ CAMPAIGN : "has"
     CAMPAIGN ||--o{ CAMPAIGN_CREATOR : "engages"
     CREATOR ||--o{ CAMPAIGN_CREATOR : "participates in"

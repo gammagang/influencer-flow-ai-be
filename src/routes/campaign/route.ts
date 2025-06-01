@@ -1,4 +1,4 @@
-import { createCampaign } from '@/api/campaign'
+import { createCampaign, getCampaignsByCompanyId } from '@/api/campaign'
 import { findCompanyByUserId } from '@/api/company'
 import { BadRequestError } from '@/errors/bad-request-error'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -45,6 +45,41 @@ const mockCampaigns: any[] = [
   }
 ]
 
+router.get('/', async (req: Request, res: Response) => {
+  const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
+
+  // Get the authenticated user's company
+  const company = await findCompanyByUserId(req.user?.sub || '')
+  if (!company?.id) throw new BadRequestError('No company found for the user')
+
+  // Fetch campaigns from database for the user's company
+  let campaigns = await getCampaignsByCompanyId(company.id.toString())
+
+  // Apply status filter if provided
+  if (validatedQuery.status) {
+    campaigns = campaigns.filter((c: any) => c.state === validatedQuery.status)
+  }
+
+  const page = validatedQuery.page || 1
+  const limit = validatedQuery.limit || 10
+  const startIndex = (page - 1) * limit
+  const endIndex = page * limit
+  const paginatedCampaigns = campaigns.slice(startIndex, endIndex)
+
+  SuccessResponse.send({
+    res,
+    data: {
+      items: paginatedCampaigns,
+      pagination: {
+        total: campaigns.length,
+        page,
+        limit,
+        totalPages: Math.ceil(campaigns.length / limit)
+      }
+    }
+  })
+})
+
 router.post('/add', async (req: Request, res: Response) => {
   const company = await findCompanyByUserId(req.user?.sub || '')
   if (!company?.id) throw new BadRequestError('No company found for the user')
@@ -53,37 +88,6 @@ router.post('/add', async (req: Request, res: Response) => {
   const campaign = await createCampaign(validatedBody, company.id)
 
   SuccessResponse.send({ res, data: campaign, status: 201 })
-})
-
-router.get('/', async (req: Request, res: Response) => {
-  const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
-
-  let filteredCampaigns = [...mockCampaigns]
-  if (validatedQuery.companyId) {
-    filteredCampaigns = filteredCampaigns.filter((c) => c.companyId === validatedQuery.companyId)
-  }
-  if (validatedQuery.status) {
-    filteredCampaigns = filteredCampaigns.filter((c) => c.status === validatedQuery.status)
-  }
-
-  const page = validatedQuery.page || 0
-  const limit = validatedQuery.limit || 10
-  const startIndex = (page - 1) * limit
-  const endIndex = page * limit
-  const paginatedCampaigns = filteredCampaigns.slice(startIndex, endIndex)
-
-  SuccessResponse.send({
-    res,
-    data: {
-      items: paginatedCampaigns,
-      pagination: {
-        total: filteredCampaigns.length,
-        page,
-        limit,
-        totalPages: Math.ceil(filteredCampaigns.length / limit)
-      }
-    }
-  })
 })
 
 router.get('/:id', async (req: Request, res: Response) => {

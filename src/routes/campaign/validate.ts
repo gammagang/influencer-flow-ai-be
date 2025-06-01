@@ -38,7 +38,6 @@ export const ListCampaignsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().optional().default(10),
   sortBy: z.string().optional().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
-  companyId: z.string().uuid({ message: 'Invalid company ID' }).optional(), // For filtering by company
   status: z.string().optional() // e.g., 'active', 'completed', 'pending'
 })
 
