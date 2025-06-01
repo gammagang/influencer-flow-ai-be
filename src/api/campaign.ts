@@ -3,9 +3,8 @@ import { CreateCampaignReq } from '@/routes/campaign/validate'
 
 // This will contain the db calls to create, get, update campaign details
 
-export async function createCampaign(campaign: CreateCampaignReq) {
+export async function createCampaign(campaign: CreateCampaignReq, companyId: string) {
   // For MVP, using a dummy company ID
-  const dummyCompanyId = 5
 
   const result = await sql`
     INSERT INTO campaign (
@@ -20,7 +19,7 @@ export async function createCampaign(campaign: CreateCampaignReq) {
       ${campaign.description || null},
       ${campaign.startDate},
       ${campaign.endDate},
-      ${dummyCompanyId},
+      ${companyId},
       'active'
     )
     RETURNING *
