@@ -1,4 +1,4 @@
-import { createCampaign, getCampaignsByCompanyId } from '@/api/campaign'
+import { createCampaign, getCampaignsByCompanyId, getCreatorsInCampaign } from '@/api/campaign'
 import { findCompanyByUserId } from '@/api/company'
 import { BadRequestError } from '@/errors/bad-request-error'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -13,7 +13,7 @@ import {
 } from './validate'
 import { addCreatorToCampaign } from '@/api/creator'
 
-const router = Router()
+const campaignsRouter = Router()
 
 // TODO: Replace with actual database interactions and service logic
 
@@ -46,8 +46,8 @@ const mockCampaigns: any[] = [
     meta: { preLaunchSignups: 500 }
   }
 ]
-
-router.post('/', async (req: Request, res: Response) => {
+// Create Campaign
+campaignsRouter.post('/', async (req: Request, res: Response) => {
   const company = await findCompanyByUserId(req.user?.sub || '')
   if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
 
@@ -57,7 +57,8 @@ router.post('/', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign, status: 201 })
 })
 
-router.get('/', async (req: Request, res: Response) => {
+// Get ALL campaigns
+campaignsRouter.get('/', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
 
   // Get the authenticated user's company
@@ -92,7 +93,8 @@ router.get('/', async (req: Request, res: Response) => {
   })
 })
 
-router.get('/:id', async (req: Request, res: Response) => {
+// Get Campaign by ID
+campaignsRouter.get('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
   const campaign = mockCampaigns.find((c) => c.id === campaignId)
 
@@ -106,7 +108,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign })
 })
 
-router.put('/:id', async (req: Request, res: Response) => {
+// Update Campaign
+campaignsRouter.put('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
   const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
 
@@ -129,7 +132,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCampaign })
 })
 
-router.put('/:campaignId/creator', async (req: Request, res: Response) => {
+// Add Creator to Campaign
+campaignsRouter.put('/:campaignId/creator', async (req: Request, res: Response) => {
   const { creatorData } = req.body
   const campaignId = req.params.campaignId
   const body = { campaignId, creatorData }
@@ -154,20 +158,11 @@ router.put('/:campaignId/creator', async (req: Request, res: Response) => {
   })
 })
 
-router.delete('/:id', async (req: Request, res: Response) => {
-  const campaignId = req.params.id
-
-  const campaignIndex = mockCampaigns.findIndex((c) => c.id === campaignId)
-  if (campaignIndex === -1) {
-    throw new NotFoundError(
-      'Campaign not found',
-      `Campaign with ID ${campaignId} not found`,
-      req.path
-    )
-  }
-
-  mockCampaigns.splice(campaignIndex, 1)
-  SuccessResponse.send({ res, status: 204, data: {} })
+// List creators in campaign
+campaignsRouter.get('/:campaignId/creator', async (req: Request, res: Response) => {
+  const campaignId = req.params.campaignId
+  const creators = await getCreatorsInCampaign(campaignId)
+  SuccessResponse.send({ res, data: creators })
 })
 
-export { router as campaignsRouter }
+export { campaignsRouter }
