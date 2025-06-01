@@ -1,3 +1,4 @@
+import configs from '@/configs'
 import swaggerAutogen from 'swagger-autogen'
 
 const doc = {
@@ -9,7 +10,7 @@ const doc = {
   },
   servers: [
     {
-      url: 'http://localhost:3000', // or your actual host
+      url: configs.host, // Use environment variable or fallback
       description: 'Development server'
     }
   ]

@@ -1,4 +1,4 @@
-FROM node:18.18.0-alpine as build
+FROM node:22-alpine as build
 
 WORKDIR /app
 
@@ -10,13 +10,13 @@ RUN pnpm install
 
 # Copy the source code and build
 COPY . ./
-RUN pnpm build
+RUN pnpm swagger:gen && pnpm build
 
 # Install only production dependencies
 RUN pnpm prune --prod
 
 # Use a new stage to create the final image
-FROM node:18.18.0-alpine as production
+FROM node:22-alpine as production
 
 WORKDIR /app
 
