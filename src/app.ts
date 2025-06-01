@@ -15,7 +15,9 @@ import swaggerDocument from '@/gen/swagger-output.json'
 import { jwtMiddleware } from '@/middlewares/jwt'
 
 import { allRoutes } from './routes'
+
 import configs from './configs'
+import { publicRoutes } from './routes/public/route'
 
 const app = express()
 
@@ -55,6 +57,7 @@ app.set('trust proxy', true)
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)) // Use swagger-output.json
 app.use('/api', jwtMiddleware, allRoutes)
+app.use('/public', publicRoutes)
 
 app.get('/', (_: Request, res: Response) => {
   SuccessResponse.send({
