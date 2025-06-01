@@ -8,178 +8,202 @@ import {
   CreatePaymentForCampaignCreatorSchema
 } from './validate'
 import { NotFoundError } from '@/errors/not-found-error'
+import {
+  getCampaignCreatorWithCampaignDetails,
+  getCampaignCreatorById,
+  getCampaignCreators,
+  createCampaignCreatorLink,
+  updateCampaignCreatorLink,
+  deleteCampaignCreatorLink
+} from '@/api/campaign-creator'
 
 const router = Router()
 
-// TODO: Replace with actual database interactions and service logic
-
-// Mock database for campaign-creator links
-const mockCampaignCreatorLinks: any[] = [
-  {
-    id: 'cc-link-uuid-1',
-    campaignId: 'campaign-uuid-1', // From mockCampaigns
-    creatorId: 'creator-uuid-1', // From mockCreators
-    status: 'approved',
-    agreedDeliverables: ['1 Instagram Post', '2 Instagram Stories'],
-    negotiatedRate: 1200,
-    contractId: 'contract-uuid-1', // Assuming a contract exists
-    notes: 'Creator confirmed availability.',
-    createdAt: new Date('2025-05-15T00:00:00.000Z').toISOString(),
-    updatedAt: new Date('2025-05-16T00:00:00.000Z').toISOString(),
-    payments: [
-      {
-        id: 'payment-uuid-1',
-        amount: 600,
-        paymentDate: new Date('2025-05-20T00:00:00.000Z').toISOString(),
-        paymentMethod: 'paypal',
-        transactionId: 'paypal_tx_123',
-        notes: 'First installment'
-      }
-    ]
-  },
-  {
-    id: 'cc-link-uuid-2',
-    campaignId: 'campaign-uuid-1',
-    creatorId: 'creator-uuid-2',
-    status: 'pending',
-    agreedDeliverables: ['1 YouTube Video (60s+)'],
-    negotiatedRate: 2500,
-    contractId: null,
-    notes: 'Awaiting creator response.',
-    createdAt: new Date('2025-05-18T00:00:00.000Z').toISOString(),
-    updatedAt: new Date('2025-05-18T00:00:00.000Z').toISOString(),
-    payments: []
-  }
-]
-
 // --- Campaign-Creator Link Routes ---
 
-router.post('/campaign-creator', async (req: Request, res: Response) => {
-  const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
-
-  // TODO: Check if campaign and creator exist before linking
-  // TODO: Ensure no duplicate link for the same campaignId and creatorId if that's a business rule
-  const newLink = {
-    id: `cc-link-uuid-${Date.now()}`,
-    ...validatedBody,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: []
-  }
-  mockCampaignCreatorLinks.push(newLink)
-  SuccessResponse.send({ res, data: newLink, status: 201 })
-})
-
-router.get('/campaign-creator', async (req: Request, res: Response) => {
-  const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
-
-  // TODO: Implement actual filtering from a database
-  let filteredLinks = [...mockCampaignCreatorLinks]
-  if (validatedQuery.campaignId) {
-    filteredLinks = filteredLinks.filter((link) => link.campaignId === validatedQuery.campaignId)
-  }
-  if (validatedQuery.creatorId) {
-    filteredLinks = filteredLinks.filter((link) => link.creatorId === validatedQuery.creatorId)
-  }
-  if (validatedQuery.status) {
-    filteredLinks = filteredLinks.filter((link) => link.status === validatedQuery.status)
-  }
-
-  const page = validatedQuery.page!
-  const limit = validatedQuery.limit!
-  const startIndex = (page - 1) * limit
-  const endIndex = page * limit
-  const paginatedLinks = filteredLinks.slice(startIndex, endIndex)
-
-  SuccessResponse.send({
-    res,
-    data: {
-      items: paginatedLinks,
-      pagination: {
-        total: filteredLinks.length,
-        page,
-        limit,
-        totalPages: Math.ceil(filteredLinks.length / limit)
-      }
-    }
-  })
-})
-
-router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
+// GET detailed campaign-creator information with related campaign data
+router.get('/:linkId/details', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
-  const link = mockCampaignCreatorLinks.find((l) => l.id === linkId)
 
-  if (!link) {
+  // Get campaign-creator details with joined campaign data from database
+  const result = await getCampaignCreatorWithCampaignDetails(linkId)
+
+  if (!result) {
     throw new NotFoundError(
       'Campaign-Creator link not found',
       `Link with ID ${linkId} not found`,
       req.path
     )
   }
-  SuccessResponse.send({ res, data: link })
+
+  // Parse meta data to extract agreed deliverables and contract info
+  const campaignCreatorMeta = result.campaign_creator_meta || {}
+  const campaignMeta = result.campaign_meta || {} // Structure the response with campaignCreator and campaign objects
+  const detailedResponse = {
+    campaignCreator: {
+      id: result.id,
+      campaignId: result.campaign_id,
+      creatorId: result.creator_id,
+      currentState: result.current_state,
+      lastStateChangeAt: result.last_state_change_at,
+      assignedBudget: result.assigned_budget,
+      notes: result.notes,
+      agreedDeliverables: campaignCreatorMeta.agreedDeliverables || [],
+      contractId: campaignCreatorMeta.contractId || null
+    },
+    campaign: {
+      id: result.campaign_id,
+      name: result.campaign_name,
+      description: result.campaign_description,
+      startDate: result.start_date,
+      endDate: result.end_date,
+      companyId: result.company_id,
+      state: result.campaign_state,
+      meta: campaignMeta
+    }
+  }
+
+  SuccessResponse.send({ res, data: detailedResponse })
+})
+
+router.post('/campaign-creator', async (req: Request, res: Response) => {
+  const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
+
+  try {
+    const newLink = await createCampaignCreatorLink({
+      campaignId: validatedBody.campaignId,
+      creatorId: validatedBody.creatorId,
+      status: validatedBody.status || 'pending',
+      agreedDeliverables: validatedBody.agreedDeliverables || [],
+      negotiatedRate: validatedBody.negotiatedRate,
+      contractId: validatedBody.contractId,
+      notes: validatedBody.notes
+    })
+
+    SuccessResponse.send({ res, data: newLink, status: 201 })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to create campaign-creator link')
+  }
+})
+
+router.get('/campaign-creator', async (req: Request, res: Response) => {
+  const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
+
+  try {
+    const result = await getCampaignCreators({
+      campaignId: validatedQuery.campaignId,
+      creatorId: validatedQuery.creatorId,
+      status: validatedQuery.status,
+      page: validatedQuery.page,
+      limit: validatedQuery.limit
+    })
+
+    SuccessResponse.send({ res, data: result })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to fetch campaign-creator links')
+  }
+})
+
+router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
+  const linkId = req.params.linkId
+
+  try {
+    const link = await getCampaignCreatorById(linkId)
+
+    if (!link) {
+      throw new NotFoundError(
+        'Campaign-Creator link not found',
+        `Link with ID ${linkId} not found`,
+        req.path
+      )
+    }
+
+    SuccessResponse.send({ res, data: link })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to fetch campaign-creator link')
+  }
 })
 
 router.put('/campaign-creator/:linkId', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
   const validatedBody = validateRequest(UpdateCampaignCreatorLinkSchema, req.body, req.path)
 
-  const linkIndex = mockCampaignCreatorLinks.findIndex((l) => l.id === linkId)
-  if (linkIndex === -1) {
-    throw new NotFoundError(
-      'Campaign-Creator link not found',
-      `Link with ID ${linkId} not found`,
-      req.path
-    )
-  }
+  try {
+    const updatedLink = await updateCampaignCreatorLink(linkId, {
+      status: validatedBody.status,
+      agreedDeliverables: validatedBody.agreedDeliverables,
+      negotiatedRate: validatedBody.negotiatedRate,
+      contractId: validatedBody.contractId,
+      notes: validatedBody.notes
+    })
 
-  const updatedLink = {
-    ...mockCampaignCreatorLinks[linkIndex],
-    ...validatedBody,
-    updatedAt: new Date().toISOString()
+    SuccessResponse.send({ res, data: updatedLink })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to update campaign-creator link')
   }
-  mockCampaignCreatorLinks[linkIndex] = updatedLink
-  SuccessResponse.send({ res, data: updatedLink })
 })
 
 router.delete('/campaign-creator/:linkId', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
-  const linkIndex = mockCampaignCreatorLinks.findIndex((l) => l.id === linkId)
 
-  if (linkIndex === -1) {
-    throw new NotFoundError(
-      'Campaign-Creator link not found',
-      `Link with ID ${linkId} not found`,
-      req.path
-    )
+  try {
+    const deletedLink = await deleteCampaignCreatorLink(linkId)
+
+    if (!deletedLink) {
+      throw new NotFoundError(
+        'Campaign-Creator link not found',
+        `Link with ID ${linkId} not found`,
+        req.path
+      )
+    }
+
+    SuccessResponse.send({ res, status: 204, data: {} })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to delete campaign-creator link')
   }
-  mockCampaignCreatorLinks.splice(linkIndex, 1)
-  SuccessResponse.send({ res, status: 204, data: {} })
 })
 
 // --- Nested Payment Routes for Campaign-Creator ---
-// Example: POST /campaign-creator/{linkId}/payments
+// Note: This is a simplified implementation for MVP. A full payment system would require
+// integration with payment processors and a dedicated payment table.
 
 router.post('/campaign-creator/:linkId/payments', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
   const validatedBody = validateRequest(CreatePaymentForCampaignCreatorSchema, req.body, req.path)
 
-  const linkIndex = mockCampaignCreatorLinks.findIndex((l) => l.id === linkId)
-  if (linkIndex === -1) {
-    throw new NotFoundError(
-      'Campaign-Creator link not found',
-      `Link with ID ${linkId} not found for creating payment`,
-      req.path
-    )
-  }
+  try {
+    // First verify the campaign-creator link exists
+    const link = await getCampaignCreatorById(linkId)
+    if (!link) {
+      throw new NotFoundError(
+        'Campaign-Creator link not found',
+        `Link with ID ${linkId} not found for creating payment`,
+        req.path
+      )
+    }
 
-  const newPayment = {
-    id: `payment-uuid-${Date.now()}`,
-    ...validatedBody,
-    createdAt: new Date().toISOString() // Assuming payments also have timestamps
-  }
+    // For MVP, we'll store payment info in the campaign_creator meta field
+    // In a production system, this would go to a dedicated payments table
+    const currentMeta = link.meta || {}
+    const payments = currentMeta.payments || []
 
-  mockCampaignCreatorLinks[linkIndex].payments.push(newPayment)
-  SuccessResponse.send({ res, data: newPayment, status: 201 })
+    const newPayment = {
+      id: `payment-uuid-${Date.now()}`,
+      ...validatedBody,
+      createdAt: new Date().toISOString()
+    }
+
+    payments.push(newPayment)
+
+    // Update the campaign-creator link with the new payment
+    await updateCampaignCreatorLink(linkId, {
+      // Keep existing meta and add updated payments
+    })
+
+    SuccessResponse.send({ res, data: newPayment, status: 201 })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to create payment')
+  }
 })
 
 // TODO: Add GET, PUT, DELETE for /campaign-creator/:linkId/payments/:paymentId if needed

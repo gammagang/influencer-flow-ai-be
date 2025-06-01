@@ -63,3 +63,11 @@ export async function getCampaignsByCompanyId(companyId: string) {
 
   return result.map((row) => row) // Convert RowList to plain array
 }
+
+export async function getCampaignById(campaignId: string) {
+  const result = await sql`
+    SELECT * FROM campaign WHERE id = ${campaignId}
+  `
+
+  return result[0] || null
+}

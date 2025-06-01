@@ -164,7 +164,6 @@ export const sendTestEmail = async (req: Request, res: Response) => {
     if (!to || !z.string().email().safeParse(to).success) {
       throw new BadRequestError('Valid email address is required in "to" field', req.path)
     }
-
     const testEmailData = {
       to,
       subject: 'Test Email from InfluencerFlow AI',
@@ -173,9 +172,11 @@ export const sendTestEmail = async (req: Request, res: Response) => {
         <p>This is a test email from the InfluencerFlow AI platform.</p>
         <p>If you're receiving this, it means our email system is working correctly!</p>
         <br>
+        <a href="http://localhost:8080/agent-call?id=1" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Schedule Agent Call</a>
+        <br>
         <p>Best regards,<br>The InfluencerFlow AI Team</p>
       `,
-      text: `Hello ${name}!\n\nThis is a test email from the InfluencerFlow AI platform.\nIf you're receiving this, it means our email system is working correctly!\n\nBest regards,\nThe InfluencerFlow AI Team`
+      text: `Hello ${name}!\n\nThis is a test email from the InfluencerFlow AI platform.\nIf you're receiving this, it means our email system is working correctly!\n\nSchedule Agent Call: http://localhost:3000/agent-call?cc_id=1\n\nBest regards,\nThe InfluencerFlow AI Team`
     }
 
     const result = await emailService.sendEmail(testEmailData)

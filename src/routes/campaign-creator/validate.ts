@@ -3,7 +3,7 @@ import { z } from 'zod'
 // TODO: Define more specific validation schemas as per requirements
 
 export const LinkCreatorToCampaignSchema = z.object({
-  campaignId: z.number().positive({ message: 'Invalid Campaign ID' }),
+  campaignId: z.string().min(1, { message: 'Invalid Campaign ID' }),
   creatorId: z.string().min(1, { message: 'Invalid Creator ID' }),
   status: z
     .enum(['pending', 'approved', 'rejected', 'active', 'completed'])
@@ -12,7 +12,8 @@ export const LinkCreatorToCampaignSchema = z.object({
   // Potential fields for specific terms, agreed content, etc.
   agreedDeliverables: z.array(z.string()).optional(),
   negotiatedRate: z.number().positive().optional(),
-  contractId: z.string().uuid({ message: 'Invalid Contract ID' }).optional() // Link to a contract if applicable
+  contractId: z.string().uuid({ message: 'Invalid Contract ID' }).optional(), // Link to a contract if applicable
+  notes: z.string().optional()
 })
 
 export type LinkCreatorToCampaignReq = z.infer<typeof LinkCreatorToCampaignSchema>
