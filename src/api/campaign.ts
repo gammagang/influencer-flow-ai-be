@@ -63,3 +63,38 @@ export async function getCampaignsByCompanyId(companyId: string) {
 
   return result.map((row) => row) // Convert RowList to plain array
 }
+
+import { CampaignCreator } from '@/types/campaign'
+
+export async function getCreatorsInCampaign(campaignId: string): Promise<CampaignCreator[]> {
+  const result = await sql`
+    SELECT 
+      cr.id,
+      cr.name,
+      cr.platform,
+      cr.category,
+      cr.age,
+      cr.gender,
+      cr.location,
+      cr.tier,
+      cr.engagement_rate,
+      cr.email,
+      cr.phone,
+      cr.language,
+      cr.meta,
+      cc.id as campaign_creator_id,
+      cc.current_state,
+      cc.assigned_budget,
+      cc.last_state_change_at,
+      cc.meta as campaign_creator_meta
+    FROM campaign_creator cc
+    JOIN creator cr ON cc.creator_id = cr.id
+    WHERE cc.campaign_id = ${campaignId}
+  `
+
+  return result.map((row) => ({
+    ...(row as any),
+    meta: row.meta ? JSON.parse(row.meta) : {},
+    campaign_creator_meta: row.campaign_creator_meta ? JSON.parse(row.campaign_creator_meta) : {}
+  }))
+}
