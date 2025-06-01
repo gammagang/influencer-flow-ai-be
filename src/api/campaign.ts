@@ -66,7 +66,7 @@ export async function getCampaignsByCompanyId(companyId: string) {
 }
 
 export async function getCreatorsInCampaign(campaignId: string): Promise<CampaignCreator[]> {
-  const result = await sql<CampaignCreator[]>`
+  const results = await sql<CampaignCreator[]>`
     SELECT 
       cr.id,
       cr.name,
@@ -91,11 +91,7 @@ export async function getCreatorsInCampaign(campaignId: string): Promise<Campaig
     WHERE cc.campaign_id = ${campaignId}
   `
 
-  return result.map((row) => ({
-    ...(row as any),
-    meta: row.meta ? JSON.parse(row.meta) : {},
-    campaign_creator_meta: row.campaign_creator_meta ? JSON.parse(row.campaign_creator_meta) : {}
-  }))
+  return results
 }
 
 export async function getCampaignById(campaignId: string): Promise<CampaignRow | null> {
