@@ -48,14 +48,15 @@ export const DiscoverCreatorsQuerySchema = z.object({
   language: z.array(z.string()).optional(), // E.g. ["en", "es"]
   category: z.array(z.string()).optional(), // E.g. ["Fashion", "Beauty"]
   er: z.array(z.string()).optional(), // Engagement Rate, E.g. ["1-2", "2-3"]
-  gender: z.array(z.string()).optional() // Engagement Rate, E.g. ["1-2", "2-3"]
+  gender: z.array(z.string()).optional(), // Gender filter, E.g. ["male", "female"]
+  bio: z.string().optional() // Keyword search in bio
 })
 
 export type DiscoverCreatorsQuery = z.infer<typeof DiscoverCreatorsQuerySchema>
 
 export const AddCreatorToCampaignReqSchema = z.object({
-  campaignId: z.string().refine((id) => !isNaN(Number(id)) && Number(id) > 0, { 
-    message: 'Invalid campaign ID format' 
+  campaignId: z.string().refine((id) => !isNaN(Number(id)) && Number(id) > 0, {
+    message: 'Invalid campaign ID format'
   }),
   creatorData: z.object({
     name: z.string().min(1, { message: 'Creator name is required' }),
