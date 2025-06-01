@@ -1,10 +1,6 @@
 import 'dotenv/config'
 
-import configs from '@/configs'
-import swaggerAutogen from 'swagger-autogen'
-import { log } from './logger'
-
-log.info('Generating Swagger documentation...', configs.swaggerHost)
+import swaggerAutoGen from 'swagger-autogen'
 
 const doc = {
   info: {
@@ -15,7 +11,7 @@ const doc = {
   },
   servers: [
     {
-      url: configs.host, // Use environment variable or fallback
+      url: `http://localhost:3000`, // Use environment variable or fallback
       description: 'Local server'
     },
     {
@@ -32,7 +28,7 @@ const endpointsFiles = [
   '../app.ts' // Adjusted path
 ]
 
-const swaggerGenerator = swaggerAutogen({ openapi: '3.0.0' })
+const swaggerGenerator = swaggerAutoGen({ openapi: '3.0.0' })
 
 swaggerGenerator(outputFile, endpointsFiles, doc).then(() => {
   console.log('Swagger documentation generated successfully: ' + outputFile)
