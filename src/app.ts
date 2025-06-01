@@ -53,22 +53,24 @@ app.use(mInitCLS)
 // X-Forwarded-For will be used to determine users exact IP
 app.set('trust proxy', true)
 
-// Swagger UI setup
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)) // Use swagger-output.json
-
-// Apply JWT middleware to all API routes except healthcheck
 app.use('/api', jwtMiddleware, allRoutes)
 
-// import { jwtMiddleware } from '@/middlewares/jwt'
+app.get('/', (_: Request, res: Response) => {
+  SuccessResponse.send({
+    res,
+    title: 'Welcome to Influencer Flow AI Backend'
+  })
+})
 
-app.get('/healthcheck', async (_: Request, res: Response) => {
+app.get('/health-check', async (_: Request, res: Response) => {
   SuccessResponse.send({
     res,
     title: '⚡⚡⚡ Hello ⚡⚡⚡ - Server is healthy 💗'
   })
 })
 
-// // For all other routes, it throws a 404 error
+// For all other routes, it throws a 404 error
 app.all('*', async (req: Request) => {
   throw new NotFoundError('Route not found', 'The requested route does not exist', req.path)
 })
