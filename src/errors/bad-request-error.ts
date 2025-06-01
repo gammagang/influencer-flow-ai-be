@@ -7,8 +7,8 @@ export class BadRequestError extends CustomError {
 
   constructor(
     public override message: string,
-    public detail?: string,
-    public instance?: string
+    public instance: string,
+    public detail?: string
   ) {
     super(message)
   }
@@ -18,7 +18,7 @@ export class BadRequestError extends CustomError {
       type: this.type,
       title: this.message,
       status: this.statusCode,
-      detail: this.detail,
+      detail: this.detail || 'Bad Request',
       instance: this.instance
     }
   }

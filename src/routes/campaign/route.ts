@@ -50,7 +50,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   // Get the authenticated user's company
   const company = await findCompanyByUserId(req.user?.sub || '')
-  if (!company?.id) throw new BadRequestError('No company found for the user')
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
 
   // Fetch campaigns from database for the user's company
   let campaigns = await getCampaignsByCompanyId(company.id.toString())
@@ -82,7 +82,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/add', async (req: Request, res: Response) => {
   const company = await findCompanyByUserId(req.user?.sub || '')
-  if (!company?.id) throw new BadRequestError('No company found for the user')
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
 
   const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
   const campaign = await createCampaign(validatedBody, company.id)
