@@ -1,6 +1,6 @@
 import { sql } from '@/libs/db'
 import { CreateCampaignReq } from '@/routes/campaign/validate'
-import { CampaignCreator } from '@/types/campaign'
+import { CampaignCreator, CampaignRow } from '@/types/campaign'
 
 // This will contain the db calls to create, get, update campaign details
 
@@ -47,7 +47,7 @@ export async function createCampaign(campaign: CreateCampaignReq, companyId: str
       ${endDate},
       ${companyId},
       'active',
-      ${JSON.stringify(meta)}
+      ${sql.json(meta)}
     )
     RETURNING *
   `
@@ -66,7 +66,7 @@ export async function getCampaignsByCompanyId(companyId: string) {
 }
 
 export async function getCreatorsInCampaign(campaignId: string): Promise<CampaignCreator[]> {
-  const result = await sql`
+  const result = await sql<CampaignCreator[]>`
     SELECT 
       cr.id,
       cr.name,
@@ -98,10 +98,11 @@ export async function getCreatorsInCampaign(campaignId: string): Promise<Campaig
   }))
 }
 
-export async function getCampaignById(campaignId: string) {
-  const result = await sql`
+export async function getCampaignById(campaignId: string): Promise<CampaignRow | null> {
+  const result = await sql<CampaignRow[]>`
     SELECT * FROM campaign WHERE id = ${campaignId}
+    LIMIT 1
   `
 
-  return result[0] || null
+  return result?.[0] || null
 }

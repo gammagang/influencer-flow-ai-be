@@ -1,4 +1,9 @@
-import { createCampaign, getCampaignsByCompanyId, getCreatorsInCampaign } from '@/api/campaign'
+import {
+  createCampaign,
+  getCampaignsByCompanyId,
+  getCreatorsInCampaign,
+  getCampaignById
+} from '@/api/campaign'
 import { findCompanyByUserId } from '@/api/company'
 import { BadRequestError } from '@/errors/bad-request-error'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -12,6 +17,7 @@ import {
   UpdateCampaignReqSchema
 } from './validate'
 import { addCreatorToCampaign } from '@/api/creator'
+import { ForbiddenError } from '@/errors/forbidden-error'
 
 const campaignsRouter = Router()
 
@@ -96,15 +102,20 @@ campaignsRouter.get('/', async (req: Request, res: Response) => {
 // Get Campaign by ID
 campaignsRouter.get('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
-  const campaign = mockCampaigns.find((c) => c.id === campaignId)
 
-  if (!campaign) {
-    throw new NotFoundError(
-      'Campaign not found',
-      `Campaign with ID ${campaignId} not found`,
-      req.path
-    )
+  const company = await findCompanyByUserId(req.user?.sub || '')
+  if (!company?.id) {
+    throw new BadRequestError('No company found for the user', req.path)
   }
+
+  const campaign = await getCampaignById(campaignId)
+
+  if (!campaign)
+    throw new NotFoundError('Campaign', `Campaign with ID ${campaignId} not found`, req.path)
+
+  // Verify that the campaign belongs to the user's company
+  if (campaign.company_id.toString() !== company.id.toString()) throw new ForbiddenError(req.path)
+
   SuccessResponse.send({ res, data: campaign })
 })
 
