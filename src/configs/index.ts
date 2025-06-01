@@ -9,7 +9,10 @@ export const configs = () => ({
   },
   groqApiKey: process.env.GROQ_API_KEY || '',
   ylyticApiKey: process.env.YLYTIC_API_KEY || '',
-  elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || ''
+  elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
+  db: {
+    databaseUrl: process.env.DATABASE_URL || ''
+  }
 })
 
 export default configs()

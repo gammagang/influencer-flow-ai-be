@@ -34,6 +34,9 @@ importers:
       nanoid:
         specifier: ^3.1.22
         version: 3.3.7
+      postgres:
+        specifier: ^3.4.7
+        version: 3.4.7
       serialize-error:
         specifier: ^8.1.0
         version: 8.1.0
@@ -1907,6 +1910,10 @@ packages:
       }
     engines: { node: '>=8' }
 
+  postgres@3.4.7:
+    resolution: {integrity: sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==}
+    engines: {node: '>=12'}
+
   prettier@3.3.2:
     resolution:
       {
@@ -3633,6 +3640,8 @@ snapshots:
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
+
+  postgres@3.4.7: {}
 
   prettier@3.3.2: {}
 
