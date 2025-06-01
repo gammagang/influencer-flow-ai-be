@@ -43,8 +43,8 @@ const mockCampaigns: any[] = [
   }
 ]
 
-router.get('/campaigns', async (req: Request, res: Response) => {
-  log.info('Controller: GET /campaigns')
+router.get('/campaign', async (req: Request, res: Response) => {
+  log.info('Controller: GET /campaign')
   const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
 
   let filteredCampaigns = [...mockCampaigns]
@@ -75,8 +75,8 @@ router.get('/campaigns', async (req: Request, res: Response) => {
   })
 })
 
-router.get('/campaigns/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: GET /campaigns/${req.params.id}`)
+router.get('/campaign/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: GET /campaign/${req.params.id}`)
   const campaignId = req.params.id
   const campaign = mockCampaigns.find((c) => c.id === campaignId)
 
@@ -90,8 +90,8 @@ router.get('/campaigns/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign })
 })
 
-router.post('/campaigns', async (req: Request, res: Response) => {
-  log.info('Controller: POST /campaigns')
+router.post('/campaign', async (req: Request, res: Response) => {
+  log.info('Controller: POST /campaign')
   const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
 
   const newCampaign = {
@@ -106,8 +106,8 @@ router.post('/campaigns', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newCampaign, status: 201 })
 })
 
-router.put('/campaigns/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /campaigns/${req.params.id}`)
+router.put('/campaign/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: PUT /campaign/${req.params.id}`)
   const campaignId = req.params.id
   const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
 
@@ -130,8 +130,8 @@ router.put('/campaigns/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCampaign })
 })
 
-router.delete('/campaigns/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: DELETE /campaigns/${req.params.id}`)
+router.delete('/campaign/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: DELETE /campaign/${req.params.id}`)
   const campaignId = req.params.id
 
   const campaignIndex = mockCampaigns.findIndex((c) => c.id === campaignId)

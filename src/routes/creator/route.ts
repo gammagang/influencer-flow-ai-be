@@ -39,8 +39,8 @@ const mockCreators: any[] = [
   }
 ]
 
-router.get('/creators', async (req: Request, res: Response) => {
-  log.info('Controller: GET /creators')
+router.get('/creator', async (req: Request, res: Response) => {
+  log.info('Controller: GET /creator')
   // validatedQuery will have defaults applied by Zod for page and limit.
   const validatedQuery = validateRequest(ListCreatorsQuerySchema, req.query, req.path)
 
@@ -89,8 +89,8 @@ router.get('/creators', async (req: Request, res: Response) => {
   })
 })
 
-router.get('/creators/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: GET /creators/${req.params.id}`)
+router.get('/creator/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: GET /creator/${req.params.id}`)
   const creatorId = req.params.id
   const creator = mockCreators.find((c) => c.id === creatorId)
 
@@ -100,8 +100,8 @@ router.get('/creators/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: creator })
 })
 
-router.post('/creators', async (req: Request, res: Response) => {
-  log.info('Controller: POST /creators')
+router.post('/creator', async (req: Request, res: Response) => {
+  log.info('Controller: POST /creator')
   const validatedBody = validateRequest(CreateCreatorReqSchema, req.body, req.path)
 
   const newCreator = {
@@ -115,8 +115,8 @@ router.post('/creators', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newCreator, status: 201 })
 })
 
-router.put('/creators/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /creators/${req.params.id}`)
+router.put('/creator/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: PUT /creator/${req.params.id}`)
   const creatorId = req.params.id
   const validatedBody = validateRequest(UpdateCreatorReqSchema, req.body, req.path)
 
@@ -135,8 +135,8 @@ router.put('/creators/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: updatedCreator })
 })
 
-router.delete('/creators/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: DELETE /creators/${req.params.id}`)
+router.delete('/creator/:id', async (req: Request, res: Response) => {
+  log.info(`Controller: DELETE /creator/${req.params.id}`)
   const creatorId = req.params.id
 
   const creatorIndex = mockCreators.findIndex((c) => c.id === creatorId)

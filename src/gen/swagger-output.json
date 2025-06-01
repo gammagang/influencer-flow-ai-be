@@ -77,7 +77,7 @@
         }
       }
     },
-    "/api/campaigns": {
+    "/api/campaign": {
       "get": {
         "description": "",
         "responses": {
@@ -95,7 +95,7 @@
         }
       }
     },
-    "/api/campaigns/{id}": {
+    "/api/campaign/{id}": {
       "get": {
         "description": "",
         "parameters": [
@@ -151,7 +151,7 @@
         }
       }
     },
-    "/api/creators": {
+    "/api/creator": {
       "get": {
         "description": "",
         "responses": {
@@ -169,7 +169,7 @@
         }
       }
     },
-    "/api/creators/{id}": {
+    "/api/creator/{id}": {
       "get": {
         "description": "",
         "parameters": [
