@@ -62,13 +62,13 @@ export const AddCreatorToCampaignReqSchema = z.object({
   creatorData: z.object({
     name: z.string().min(1, { message: 'Creator name is required' }),
     platform: z.enum(['instagram', 'tiktok', 'youtube', 'twitter', 'facebook']),
-    email: z.string().email({ message: 'Invalid email address' }).optional(),
+    email: z.string().email({ message: 'Invalid email address' }).nullable().optional(),
     age: z.number().int().positive().optional(),
     gender: z.string().optional(),
     location: z.string().optional(),
     tier: z.string().optional(),
     engagement_rate: z.number().positive().optional(),
-    phone: z.string().optional(),
+    phone: z.string().nullable().optional(),
     language: z.string().optional(),
     category: z.string().optional(),
     meta: z.record(z.any()).optional()
