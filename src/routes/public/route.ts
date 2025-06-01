@@ -3,9 +3,13 @@ import { Request, Response, Router } from 'express'
 import { getCampaignCreatorWithCampaignDetails } from '@/api/campaign-creator'
 import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
+import { elevenLabsRouter } from '../elevenlabs/route'
 
 const router = Router()
 // NOTE: All public routes will have no JWT middleware
+
+// Mount ElevenLabs routes under /elevenlabs
+router.use('/elevenlabs', elevenLabsRouter)
 
 // GET detailed campaign-creator information with related campaign data
 router.get('/campaign_creator_details/:linkId', async (req: Request, res: Response) => {

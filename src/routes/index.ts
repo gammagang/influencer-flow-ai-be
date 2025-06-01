@@ -5,7 +5,6 @@ import { companyRoutes } from './company/route'
 import { contentRouter } from './content/route'
 import { contractsRouter } from './contracts/route'
 import { creatorsRouter } from './creator/route'
-import { elevenLabsRouter } from './elevenlabs/route'
 import { webhooksRouter } from './webhook/route'
 import { emailRouter } from './email'
 
@@ -18,7 +17,6 @@ router.use('/campaign-creator', campaignCreatorRouter)
 router.use('/contracts', contractsRouter)
 router.use('/content', contentRouter)
 router.use('/webhook', webhooksRouter)
-router.use('/elevenlabs', elevenLabsRouter)
 router.use('/email', emailRouter)
 
 export { router as allRoutes }

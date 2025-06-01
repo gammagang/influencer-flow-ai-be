@@ -42,7 +42,7 @@ app.use(
 )
 
 // Raw body parser for ElevenLabs - must come BEFORE express.json()
-app.use('/api/elevenlabs', express.raw({ type: '*/*' }))
+app.use('/public/elevenlabs', express.raw({ type: '*/*' }))
 
 app.use(express.json())
 app.use(helmet())
