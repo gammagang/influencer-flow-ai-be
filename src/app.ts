@@ -15,6 +15,9 @@ import { allRoutes } from './routes'
 
 const app = express()
 
+// Raw body parser for ElevenLabs - must come BEFORE express.json()
+app.use('/api/elevenlabs', express.raw({ type: '*/*' }))
+
 app.use(express.json())
 app.use(helmet())
 app.use(compression())

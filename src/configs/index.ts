@@ -6,7 +6,8 @@ export const configs = () => ({
     namespace: process.env.CLS_REQ_NAMESPACE || 'req_session',
     correlationIdField: process.env.CORR_ID || 'x-correlation-id'
   },
-  groqApiKey: process.env.GROQ_API_KEY || ''
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || ''
 })
 
 export default configs()

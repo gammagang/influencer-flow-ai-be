@@ -1,5 +1,6 @@
 'use strict'
 
+import 'dotenv/config'
 import http from 'http'
 
 import configs from '@/configs'
