@@ -5,6 +5,7 @@ import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 
 const router = Router()
+// NOTE: All public routes will have no JWT middleware
 
 // GET detailed campaign-creator information with related campaign data
 router.get('/campaign_creator_details/:linkId', async (req: Request, res: Response) => {
