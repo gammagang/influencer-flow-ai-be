@@ -54,27 +54,3 @@ export const DiscoverCreatorsQuerySchema = z.object({
 })
 
 export type DiscoverCreatorsQuery = z.infer<typeof DiscoverCreatorsQuerySchema>
-
-export const AddCreatorToCampaignReqSchema = z.object({
-  campaignId: z.string().refine((id) => !isNaN(Number(id)) && Number(id) > 0, {
-    message: 'Invalid campaign ID format'
-  }),
-  creatorData: z.object({
-    name: z.string().min(1, { message: 'Creator name is required' }),
-    platform: z.enum(['instagram', 'tiktok', 'youtube', 'twitter', 'facebook']),
-    email: z.string().email({ message: 'Invalid email address' }).nullable().optional(),
-    age: z.number().int().positive().optional(),
-    gender: z.string().optional(),
-    location: z.string().optional(),
-    tier: z.string().optional(),
-    engagement_rate: z.number().positive().optional(),
-    phone: z.string().nullable().optional(),
-    language: z.string().optional(),
-    category: z.string().optional(),
-    meta: z.record(z.any()).optional()
-  }),
-  assignedBudget: z.number().positive().optional(),
-  notes: z.string().optional()
-})
-
-export type AddCreatorToCampaignReq = z.infer<typeof AddCreatorToCampaignReqSchema>

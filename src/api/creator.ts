@@ -1,5 +1,5 @@
 import { sql } from '@/libs/db'
-import { AddCreatorToCampaignReq } from '@/routes/creator/validate'
+import { AddCreatorToCampaignReq } from '@/routes/campaign/validate'
 
 /**
  * Create or find an existing creator and add them to a campaign

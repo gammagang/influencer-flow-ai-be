@@ -6,10 +6,12 @@ import { SuccessResponse } from '@/libs/success-response'
 import { validateRequest } from '@/middlewares/validate-request'
 import { Router, type Request, type Response } from 'express'
 import {
+  AddCreatorToCampaignReqSchema,
   CreateCampaignReqSchema,
   ListCampaignsQuerySchema,
   UpdateCampaignReqSchema
 } from './validate'
+import { addCreatorToCampaign } from '@/api/creator'
 
 const router = Router()
 
@@ -45,6 +47,16 @@ const mockCampaigns: any[] = [
   }
 ]
 
+router.post('/', async (req: Request, res: Response) => {
+  const company = await findCompanyByUserId(req.user?.sub || '')
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
+
+  const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
+  const campaign = await createCampaign(validatedBody, company.id)
+
+  SuccessResponse.send({ res, data: campaign, status: 201 })
+})
+
 router.get('/', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignsQuerySchema, req.query, req.path)
 
@@ -78,16 +90,6 @@ router.get('/', async (req: Request, res: Response) => {
       }
     }
   })
-})
-
-router.post('/', async (req: Request, res: Response) => {
-  const company = await findCompanyByUserId(req.user?.sub || '')
-  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
-
-  const validatedBody = validateRequest(CreateCampaignReqSchema, req.body, req.path)
-  const campaign = await createCampaign(validatedBody, company.id)
-
-  SuccessResponse.send({ res, data: campaign, status: 201 })
 })
 
 router.get('/:id', async (req: Request, res: Response) => {
@@ -125,6 +127,31 @@ router.put('/:id', async (req: Request, res: Response) => {
   mockCampaigns[campaignIndex] = updatedCampaign
 
   SuccessResponse.send({ res, data: updatedCampaign })
+})
+
+router.put('/:campaignId/creator', async (req: Request, res: Response) => {
+  const { creatorData } = req.body
+  const campaignId = req.params.campaignId
+  const body = { campaignId, creatorData }
+
+  const validatedBody = validateRequest(AddCreatorToCampaignReqSchema, body, req.path)
+  const result = await addCreatorToCampaign(validatedBody)
+
+  SuccessResponse.send({
+    res,
+    data: {
+      campaignCreatorId: result.id,
+      campaignId: result.campaign_id,
+      creatorId: result.creator_id,
+      creatorName: result.creator_name,
+      creatorPlatform: result.creator_platform,
+      campaignName: result.campaign_name,
+      currentState: result.current_state,
+      assignedBudget: result.assigned_budget,
+      notes: result.notes,
+      lastStateChangeAt: result.last_state_change_at
+    }
+  })
 })
 
 router.delete('/:id', async (req: Request, res: Response) => {

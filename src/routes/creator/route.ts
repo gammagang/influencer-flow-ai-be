@@ -7,12 +7,9 @@ import {
   UpdateCreatorReqSchema,
   ListCreatorsQuerySchema,
   DiscoverCreatorsQuerySchema,
-  AddCreatorToCampaignReqSchema,
   type DiscoverCreatorsQuery // Added type import
 } from './validate'
 import { NotFoundError } from '@/errors/not-found-error'
-import { BadRequestError } from '@/errors/bad-request-error'
-import { addCreatorToCampaign } from '@/api/creator'
 import {
   discoverCreator,
   type DiscoverCreatorParams,
@@ -235,7 +232,6 @@ creatorsRouter.get('/creator', async (req: Request, res: Response) => {
 })
 
 creatorsRouter.get('/creator/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: GET /creator/${req.params.id}`)
   const creatorId = req.params.id
   const creator = mockCreators.find((c) => c.id === creatorId)
 
@@ -260,7 +256,6 @@ creatorsRouter.post('/creator', async (req: Request, res: Response) => {
 })
 
 creatorsRouter.put('/creator/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /creator/${req.params.id}`)
   const creatorId = req.params.id
   const validatedBody = validateRequest(UpdateCreatorReqSchema, req.body, req.path)
 
@@ -280,7 +275,6 @@ creatorsRouter.put('/creator/:id', async (req: Request, res: Response) => {
 })
 
 creatorsRouter.delete('/creator/:id', async (req: Request, res: Response) => {
-  log.info(`Controller: DELETE /creator/${req.params.id}`)
   const creatorId = req.params.id
 
   const creatorIndex = mockCreators.findIndex((c) => c.id === creatorId)
@@ -290,41 +284,6 @@ creatorsRouter.delete('/creator/:id', async (req: Request, res: Response) => {
 
   mockCreators.splice(creatorIndex, 1)
   SuccessResponse.send({ res, status: 204, data: {} })
-})
-
-creatorsRouter.post('/add-creator-to-campaign', async (req: Request, res: Response) => {
-  // Validate request body using schema
-  const validatedBody = validateRequest(AddCreatorToCampaignReqSchema, req.body, req.path)
-
-  try {
-    // Add creator to campaign using database operations
-    const result = await addCreatorToCampaign(validatedBody)
-
-    SuccessResponse.send({
-      res,
-      data: {
-        campaignCreatorId: result.id,
-        campaignId: result.campaign_id,
-        creatorId: result.creator_id,
-        creatorName: result.creator_name,
-        creatorPlatform: result.creator_platform,
-        campaignName: result.campaign_name,
-        currentState: result.current_state,
-        assignedBudget: result.assigned_budget,
-        notes: result.notes,
-        lastStateChangeAt: result.last_state_change_at
-      }
-    })
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes('not found')) {
-        throw new NotFoundError(error.message, error.message, req.path)
-      } else if (error.message.includes('already associated')) {
-        throw new BadRequestError(error.message, req.path)
-      }
-    }
-    throw error
-  }
 })
 
 export { creatorsRouter }

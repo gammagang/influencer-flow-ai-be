@@ -1,6 +1,5 @@
 import { Router, type Request, type Response } from 'express'
 import { SuccessResponse } from '@/libs/success-response'
-import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import {
   LinkCreatorToCampaignSchema,
@@ -107,7 +106,6 @@ router.get('/campaign-creator', async (req: Request, res: Response) => {
 })
 
 router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
-  log.info(`Controller: GET /campaign-creator/${req.params.linkId}`)
   const linkId = req.params.linkId
   const link = mockCampaignCreatorLinks.find((l) => l.id === linkId)
 
@@ -122,7 +120,6 @@ router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
 })
 
 router.put('/campaign-creator/:linkId', async (req: Request, res: Response) => {
-  log.info(`Controller: PUT /campaign-creator/${req.params.linkId}`)
   const linkId = req.params.linkId
   const validatedBody = validateRequest(UpdateCampaignCreatorLinkSchema, req.body, req.path)
 
@@ -145,7 +142,6 @@ router.put('/campaign-creator/:linkId', async (req: Request, res: Response) => {
 })
 
 router.delete('/campaign-creator/:linkId', async (req: Request, res: Response) => {
-  log.info(`Controller: DELETE /campaign-creator/${req.params.linkId}`)
   const linkId = req.params.linkId
   const linkIndex = mockCampaignCreatorLinks.findIndex((l) => l.id === linkId)
 
@@ -164,7 +160,6 @@ router.delete('/campaign-creator/:linkId', async (req: Request, res: Response) =
 // Example: POST /campaign-creator/{linkId}/payments
 
 router.post('/campaign-creator/:linkId/payments', async (req: Request, res: Response) => {
-  log.info(`Controller: POST /campaign-creator/${req.params.linkId}/payments`)
   const linkId = req.params.linkId
   const validatedBody = validateRequest(CreatePaymentForCampaignCreatorSchema, req.body, req.path)
 
