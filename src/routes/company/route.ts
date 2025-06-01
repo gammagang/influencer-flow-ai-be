@@ -2,7 +2,11 @@ import { Router, type Request, type Response } from 'express'
 import { SuccessResponse } from '@/libs/success-response'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
-import { CreateCompanyReqSchema, UpdateCompanyMeReqSchema } from './validate'
+import {
+  AnalyzeWebsiteReqSchema,
+  CreateCompanyReqSchema,
+  UpdateCompanyMeReqSchema
+} from './validate'
 import { summarizeWebsite } from '@/api/summarize'
 import { createCompany } from '@/api/company'
 
@@ -44,18 +48,13 @@ companyRoutes.get('/', async (req: Request, res: Response) => {
 })
 
 companyRoutes.get('/analyze', async (req: Request, res: Response) => {
-  log.info('Controller: GET /analyze')
   const websiteUrl = req.query.url as string
 
-  if (!websiteUrl) {
-    return res.status(400).send({ message: 'Missing URL query parameter' })
-  }
+  const params = validateRequest(AnalyzeWebsiteReqSchema, { websiteUrl }, req.path)
 
   try {
-    // Use the summarizeWebsite function to analyze the website
-    const result = await summarizeWebsite({ url: websiteUrl })
+    const result = await summarizeWebsite(params.websiteUrl)
 
-    // Map the AI response to frontend fields
     const analysisResult = {
       brandName: result.brandDetails.brandName || '',
       websiteUrl: websiteUrl,
@@ -98,41 +97,6 @@ companyRoutes.put('/:companyId', async (req: Request, res: Response) => {
     meta: { triggeredEnrichment: true, oldData: '...', newData: '...' }
   }
   SuccessResponse.send({ res, data: updatedCompany })
-})
-
-companyRoutes.get('/:companyId/analyze', async (req: Request, res: Response) => {
-  log.info('Controller: GET /:companyId/analyze')
-  const { companyId } = req.params
-  const websiteUrl = req.query.url as string
-
-  if (!websiteUrl) {
-    return res.status(400).send({ message: 'Missing URL query parameter' })
-  }
-
-  try {
-    // Use the summarizeWebsite function to analyze the website
-    const result = await summarizeWebsite({ url: websiteUrl })
-
-    // Map the AI response to frontend fields
-    const analysisResult = {
-      companyId,
-      brandName: result.brandDetails.brandName || '',
-      websiteUrl: websiteUrl,
-      contactName: result.brandDetails.contactName || '',
-      phone: result.brandDetails.phone || '',
-      description: result.brandDetails.description || '',
-      industry: result.brandDetails.industry || '',
-      targetAudience: result.brandDetails.targetAudience || ''
-    }
-
-    SuccessResponse.send({ res, data: analysisResult })
-  } catch (error) {
-    log.error('Error analyzing website:', error)
-    res.status(500).send({
-      message: error instanceof Error ? error.message : 'Failed to analyze website',
-      status: 'analysis_failed'
-    })
-  }
 })
 
 export { companyRoutes }

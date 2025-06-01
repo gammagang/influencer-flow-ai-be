@@ -10,21 +10,21 @@ import {
 
 // System prompt for brand website analysis
 const SYSTEM_PROMPT = `
-You are an AI assistant that specializes in analyzing brand websites for influencer marketing purposes.
-Your task is to analyze website content and extract key information about the brand.
+  You are an AI assistant that specializes in analyzing brand websites for influencer marketing purposes.
+  Your task is to analyze website content and extract key information about the brand.
 
-Extract the following information in a structured format:
-1. brandName: The name of the brand
-2. description: A brief description of what the brand does (1-2 sentences)
-3. targetAudience: Who the brand is targeting with their products/services
-4. industry: The industry or sector the brand operates in (e.g., "Fashion", "Technology", "Food & Beverage", etc.)
-5. contactName: Any contact person name found on the website (from "About Us", "Contact", "Team" sections, etc.)
-6. phone: Any phone number found on the website (in contact sections, footer, etc.)
+  Extract the following information in a structured format:
+  1. brandName: The name of the brand
+  2. description: A brief description of what the brand does (1-2 sentences)
+  3. targetAudience: Who the brand is targeting with their products/services
+  4. industry: The industry or sector the brand operates in (e.g., "Fashion", "Technology", "Food & Beverage", etc.)
+  5. contactName: Any contact person name found on the website (from "About Us", "Contact", "Team" sections, etc.)
+  6. phone: Any phone number found on the website (in contact sections, footer, etc.)
 
-Your response should be a valid JSON object containing ONLY these fields.
-Do not include any explanatory text outside the JSON structure.
-If you cannot determine a value for a field, use an empty string.
-For phone numbers, include only the number without country codes if possible.
+  Your response should be a valid JSON object containing ONLY these fields.
+  Do not include any explanatory text outside the JSON structure.
+  If you cannot determine a value for a field, use an empty string.
+  For phone numbers, include only the number without country codes if possible.
 ` as const
 
 const SYSTEM_PROMPT_MSG: ChatCompletionSystemMessageParam = {
@@ -103,30 +103,19 @@ async function scrapeWebsite(url: string): Promise<string> {
  * @returns A promise that resolves to the brand details in JSON format
  * @throws Will throw an error if the API request fails
  */
-export const summarizeWebsite = async (
-  params: SummarizeWebsiteParams
-): Promise<SummarizeWebsiteResponse> => {
-  log.info('API: summarizeWebsite called with params:', { url: params.url })
-
+export const summarizeWebsite = async (url: string): Promise<SummarizeWebsiteResponse> => {
   try {
     // Get website content - either use provided content or scrape it
-    let websiteContent: string
-    if (params.websiteContent) {
-      websiteContent = params.websiteContent
-    } else {
-      log.info('Scraping website content from URL:', params.url)
-      websiteContent = await scrapeWebsite(params.url)
-    }
+    const websiteContent = await scrapeWebsite(url)
 
     // Prepare the message for the AI
-    const promptContent = `Analyze the following website content from ${params.url} and extract the requested information in JSON format:\n\n${websiteContent}`
+    const promptContent = `Analyze the following website content from ${url} and extract the requested information in JSON format:\n\n${websiteContent}`
 
     const messages: ChatCompletionMessageParam[] = [
       SYSTEM_PROMPT_MSG,
       generateChatMsg(promptContent)
     ]
 
-    // Call the Groq API
     const completion = await groq.chat.completions.create({
       messages,
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',

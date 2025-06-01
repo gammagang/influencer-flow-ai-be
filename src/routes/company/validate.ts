@@ -19,3 +19,9 @@ export const CreateCompanyReqSchema = z.object({
 })
 
 export type CreateCompanyReq = z.infer<typeof CreateCompanyReqSchema>
+
+export const AnalyzeWebsiteReqSchema = z.object({
+  websiteUrl: z.string().url({ message: 'Valid website URL is required' })
+})
+
+export type AnalyzeWebsiteReq = z.infer<typeof AnalyzeWebsiteReqSchema>
