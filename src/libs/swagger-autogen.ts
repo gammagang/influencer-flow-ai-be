@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 import configs from '@/configs'
 import swaggerAutogen from 'swagger-autogen'
 

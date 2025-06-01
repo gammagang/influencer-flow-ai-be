@@ -1,5 +1,5 @@
 export const configs = () => ({
-  host: process.env.HOST || 'localhost',
+  host: process.env.HOST_URL || 'localhost',
   port: Number(process.env.PORT) || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   cls: {
