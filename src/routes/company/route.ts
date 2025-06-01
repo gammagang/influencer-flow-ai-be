@@ -19,7 +19,7 @@ companyRoutes.post('/', async (req: Request, res: Response) => {
       name: validatedBody.name,
       website: validatedBody.website,
       category: validatedBody.category,
-      owner: 'default-owner', // Replace with actual owner logic
+      owner: req.user!['sub'], // Replace with actual owner logic
       description: validatedBody.description || null,
       meta: { phone: validatedBody.phone }
     })

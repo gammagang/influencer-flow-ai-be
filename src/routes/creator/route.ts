@@ -50,7 +50,7 @@ const mockCreators: any[] = [
 ]
 
 router.get('/creator/discover', async (req: Request, res: Response) => {
-  log.info('Controller: GET /creator/discover')
+  // TODO: Pull info from
 
   const country = req.query.country
   const tier = req.query.tier
