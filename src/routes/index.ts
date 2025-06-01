@@ -7,6 +7,7 @@ import { contractsRouter } from './contracts/route'
 import { creatorsRouter } from './creator/route'
 import { elevenLabsRouter } from './elevenlabs/route'
 import { webhooksRouter } from './webhook/route'
+import { emailRouter } from './email'
 
 const router = Router()
 
@@ -18,5 +19,6 @@ router.use('/contracts', contractsRouter)
 router.use('/content', contentRouter)
 router.use('/webhook', webhooksRouter)
 router.use('/elevenlabs', elevenLabsRouter)
+router.use('/email', emailRouter)
 
 export { router as allRoutes }
