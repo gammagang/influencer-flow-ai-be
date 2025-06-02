@@ -19,6 +19,7 @@ router.get(
 
     // Get campaign-creator details with joined campaign data from database
     const result = await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+    console.log(' result:', result)
 
     if (!result)
       throw new NotFoundError(
@@ -43,11 +44,11 @@ router.get(
         contractId: campaignCreatorMeta.contractId || null
       },
       campaign: {
+        startDate: result.campaign_start_date,
+        endDate: result.campaign_end_date,
         id: result.campaign_id,
         name: result.campaign_name,
         description: result.campaign_description,
-        startDate: result.start_date,
-        endDate: result.end_date,
         companyId: result.company_id,
         state: result.campaign_state,
         meta: campaignMeta
