@@ -912,7 +912,7 @@
       }
     },
     "/api/email/outreach": {
-      "post": {
+      "get": {
         "description": "",
         "parameters": [
           {
