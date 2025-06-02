@@ -192,12 +192,9 @@ router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res
   const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
 
   try {
-    // Use default email for creator outreach
-    const creatorEmail = 'gammagang100x@gmail.com'
-
     // Send the email content from frontend
     const emailResult = await sendOutreachEmailProgrammatic({
-      to: creatorEmail,
+      to: validatedBody.receiverEmail,
       subject: validatedBody.subject,
       text: validatedBody.body,
       html: validatedBody.body.replace(/\n/g, '<br>')
