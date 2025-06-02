@@ -123,7 +123,7 @@ export async function createCampaignCreatorLink(data: {
     campaignId,
     creatorId,
     status = 'pending',
-    agreedDeliverables = [],
+    agreedDeliverables = ['post', 'reel', 'story'],
     negotiatedRate,
     contractId,
     notes
@@ -155,10 +155,7 @@ export async function createCampaignCreatorLink(data: {
       ${new Date().toISOString()},
       ${negotiatedRate || null},
       ${notes || null},
-      ${JSON.stringify({
-        agreedDeliverables,
-        contractId: contractId || null
-      })}
+      ${sql.json({ agreedDeliverables, contractId: contractId || null })}
     )
     RETURNING *
   `

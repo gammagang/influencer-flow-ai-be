@@ -26,21 +26,17 @@ const router = Router()
 router.post('/', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
 
-  try {
-    const newLink = await createCampaignCreatorLink({
-      campaignId: validatedBody.campaignId,
-      creatorId: validatedBody.creatorId,
-      status: validatedBody.status || 'pending',
-      agreedDeliverables: validatedBody.agreedDeliverables || [],
-      negotiatedRate: validatedBody.negotiatedRate,
-      contractId: validatedBody.contractId,
-      notes: validatedBody.notes
-    })
+  const newLink = await createCampaignCreatorLink({
+    campaignId: validatedBody.campaignId,
+    creatorId: validatedBody.creatorId,
+    status: validatedBody.status || 'pending',
+    agreedDeliverables: validatedBody.agreedDeliverables,
+    negotiatedRate: validatedBody.negotiatedRate,
+    contractId: validatedBody.contractId,
+    notes: validatedBody.notes
+  })
 
-    SuccessResponse.send({ res, data: newLink, status: 201 })
-  } catch (error: any) {
-    throw new Error(error.message || 'Failed to create campaign-creator link')
-  }
+  SuccessResponse.send({ res, data: newLink, status: 201 })
 })
 
 router.get('/', async (req: Request, res: Response) => {
