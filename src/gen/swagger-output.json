@@ -537,7 +537,7 @@
       }
     },
     "/api/campaign-creator/{campaignCreatorMappingId}/outreach/preview": {
-      "post": {
+      "get": {
         "description": "",
         "parameters": [
           {
@@ -912,7 +912,7 @@
       }
     },
     "/api/email/outreach": {
-      "get": {
+      "post": {
         "description": "",
         "parameters": [
           {

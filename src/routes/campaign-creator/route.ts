@@ -118,8 +118,8 @@ router.delete('/:linkId', async (req: Request, res: Response) => {
   }
 })
 
-// Generate outreach email content (without sending)
-router.post('/:campaignCreatorMappingId/outreach/preview', async (req: Request, res: Response) => {
+// Generate (Preview) outreach email content (without sending)
+router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, res: Response) => {
   const campaignCreatorMappingId = req.params.campaignCreatorMappingId
   const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
 
@@ -173,7 +173,7 @@ router.post('/:campaignCreatorMappingId/outreach/preview', async (req: Request, 
 
     // Generate email content without sending
     const subject = `Partnership Opportunity with ${emailData.brandName} - ${emailData.campaignName}`
-    
+
     SuccessResponse.send({
       res,
       data: {
