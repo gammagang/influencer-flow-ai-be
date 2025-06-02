@@ -93,7 +93,7 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
       ${new Date().toISOString()},
       ${assignedBudget || 1000},
       ${notes || null},
-      '{}'
+      ${sql.json({ agreedDeliverables: ['post', 'reel', 'story'] })}
     )
     RETURNING *
   `
