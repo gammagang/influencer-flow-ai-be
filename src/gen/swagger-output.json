@@ -534,7 +534,7 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator": {
+    "/api/campaign-creator/": {
       "post": {
         "description": "",
         "parameters": [
@@ -570,12 +570,12 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator/{linkId}": {
+    "/api/campaign-creator/{campaignCreatorMappingId}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "linkId",
+            "name": "campaignCreatorMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -595,7 +595,9 @@
             "description": ""
           }
         }
-      },
+      }
+    },
+    "/api/campaign-creator/{linkId}": {
       "put": {
         "description": "",
         "parameters": [
@@ -647,7 +649,7 @@
         }
       }
     },
-    "/api/campaign-creator/campaign-creator/{linkId}/payments": {
+    "/api/campaign-creator/{linkId}/payments": {
       "post": {
         "description": "",
         "parameters": [
@@ -932,80 +934,6 @@
         }
       }
     },
-    "/api/elevenlabs/post-call": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "elevenlabs-signature",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/api/elevenlabs/store-meta/{id}": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
     "/api/email/test": {
       "post": {
         "description": "",
@@ -1099,12 +1027,12 @@
         }
       }
     },
-    "/public/campaign_creator_details/{linkId}": {
+    "/public/campaign_creator_details/{campaignCreatorMappingId}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "linkId",
+            "name": "campaignCreatorMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1141,6 +1069,80 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        }
+      }
+    },
+    "/public/elevenlabs/post-call": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elevenlabs-signature",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/public/elevenlabs/store-meta/{id}": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }

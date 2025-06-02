@@ -3,41 +3,53 @@ import { sql } from '@/libs/db'
 // This will contain the db calls for campaign-creator operations
 
 /**
- * Get detailed campaign-creator information with joined campaign data
+ * Get detailed campaign-creator information with joined campaign and creator data.
  */
 export async function getCampaignCreatorWithCampaignDetails(linkId: string) {
   const result = await sql`
     SELECT 
-      cc.id,
-      cc.campaign_id,
-      cc.creator_id,
-      cc.current_state,
-      cc.last_state_change_at,
-      cc.assigned_budget,
-      cc.notes,
+      cc.id as cc_id,
+      cc.current_state as campaign_creator_current_state,
+      cc.assigned_budget as assigned_budget,
+      cc.notes as cc_notes,
       cc.meta as campaign_creator_meta,
+      
       c.id as campaign_id,
+      c.company_id as company_id,
       c.name as campaign_name,
       c.description as campaign_description,
-      c.start_date,
-      c.end_date,
-      c.company_id,
+      c.start_date as campaign_start_date,
+      c.end_date as campaign_end_date,
       c.state as campaign_state,
-      c.meta as campaign_meta
+      c.meta as campaign_meta,
+      
+      cr.id as creator_id,
+      cr.name as creator_name,
+      cr.platform as creator_platform,
+      cr.category as creator_category,
+      cr.age as creator_age,
+      cr.gender as creator_gender,
+      cr.location as creator_location,
+      cr.tier as creator_tier,
+      cr.engagement_rate as creator_engagement_rate,
+      cr.email as creator_email,
+      cr.phone as creator_phone,
+      cr.language as creator_language,
+      cr.meta as creator_meta
     FROM campaign_creator cc
     JOIN campaign c ON cc.campaign_id = c.id
+    JOIN creator cr ON cc.creator_id = cr.id
     WHERE cc.id = ${linkId}
   `
-
   return result[0] || null
 }
 
 /**
  * Get campaign-creator by ID
  */
-export async function getCampaignCreatorById(linkId: string) {
+export async function getCampaignCreatorMappingDetails(campaignCreatorMappingId: string) {
   const result = await sql`
-    SELECT * FROM campaign_creator WHERE id = ${linkId}
+    SELECT * FROM campaign_creator WHERE id = ${campaignCreatorMappingId}
   `
 
   return result[0] || null
@@ -170,7 +182,7 @@ export async function updateCampaignCreatorLink(
   const { status, agreedDeliverables, negotiatedRate, contractId, notes } = data
 
   // Get current link to merge meta data
-  const currentLink = await getCampaignCreatorById(linkId)
+  const currentLink = await getCampaignCreatorWithCampaignDetails(linkId)
   if (!currentLink) {
     throw new Error('Campaign-creator link not found')
   }

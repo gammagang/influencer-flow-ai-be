@@ -57,7 +57,7 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
         ${creatorData.phone || null},
         ${creatorData.language || null},
         ${creatorData.category || null},
-        ${JSON.stringify(creatorData.meta || {})}
+        ${sql.json(creatorData.meta || {})}
       )
       RETURNING id
     `

@@ -1,7 +1,7 @@
 import {
   createCampaignCreatorLink,
   deleteCampaignCreatorLink,
-  getCampaignCreatorById,
+  getCampaignCreatorWithCampaignDetails,
   getCampaignCreators,
   updateCampaignCreatorLink
 } from '@/api/campaign-creator'
@@ -18,7 +18,7 @@ import {
 
 const router = Router()
 
-router.post('/campaign-creator', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
 
   try {
@@ -38,34 +38,45 @@ router.post('/campaign-creator', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/campaign-creator', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
 
-  try {
-    const result = await getCampaignCreators({
-      campaignId: validatedQuery.campaignId,
-      creatorId: validatedQuery.creatorId,
-      status: validatedQuery.status,
-      page: validatedQuery.page,
-      limit: validatedQuery.limit
-    })
+  const result = await getCampaignCreators({
+    campaignId: validatedQuery.campaignId,
+    creatorId: validatedQuery.creatorId,
+    status: validatedQuery.status,
+    page: validatedQuery.page,
+    limit: validatedQuery.limit
+  })
 
-    SuccessResponse.send({ res, data: result })
-  } catch (error: any) {
-    throw new Error(error.message || 'Failed to fetch campaign-creator links')
-  }
+  SuccessResponse.send({ res, data: result })
 })
 
-router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
-  const linkId = req.params.linkId
+// GET Campaign Creator Mapping with creator lifecycle in state
+router.get('/', async (req: Request, res: Response) => {
+  const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
+
+  const result = await getCampaignCreators({
+    campaignId: validatedQuery.campaignId,
+    creatorId: validatedQuery.creatorId,
+    status: validatedQuery.status,
+    page: validatedQuery.page,
+    limit: validatedQuery.limit
+  })
+
+  SuccessResponse.send({ res, data: result })
+})
+
+router.get('/:campaignCreatorMappingId', async (req: Request, res: Response) => {
+  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
 
   try {
-    const link = await getCampaignCreatorById(linkId)
+    const link = await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
 
     if (!link) {
       throw new NotFoundError(
         'Campaign-Creator link not found',
-        `Link with ID ${linkId} not found`,
+        `campaignCreatorMappingId: ${campaignCreatorMappingId} not found`,
         req.path
       )
     }
@@ -76,7 +87,7 @@ router.get('/campaign-creator/:linkId', async (req: Request, res: Response) => {
   }
 })
 
-router.put('/campaign-creator/:linkId', async (req: Request, res: Response) => {
+router.put('/:linkId', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
   const validatedBody = validateRequest(UpdateCampaignCreatorLinkSchema, req.body, req.path)
 
@@ -95,7 +106,7 @@ router.put('/campaign-creator/:linkId', async (req: Request, res: Response) => {
   }
 })
 
-router.delete('/campaign-creator/:linkId', async (req: Request, res: Response) => {
+router.delete('/:linkId', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
 
   try {
@@ -119,13 +130,13 @@ router.delete('/campaign-creator/:linkId', async (req: Request, res: Response) =
 // Note: This is a simplified implementation for MVP. A full payment system would require
 // integration with payment processors and a dedicated payment table.
 
-router.post('/campaign-creator/:linkId/payments', async (req: Request, res: Response) => {
+router.post('/:linkId/payments', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
   const validatedBody = validateRequest(CreatePaymentForCampaignCreatorSchema, req.body, req.path)
 
   try {
     // First verify the campaign-creator link exists
-    const link = await getCampaignCreatorById(linkId)
+    const link = await getCampaignCreatorWithCampaignDetails(linkId)
     if (!link) {
       throw new NotFoundError(
         'Campaign-Creator link not found',
@@ -158,6 +169,6 @@ router.post('/campaign-creator/:linkId/payments', async (req: Request, res: Resp
   }
 })
 
-// TODO: Add GET, PUT, DELETE for /campaign-creator/:linkId/payments/:paymentId if needed
+// TODO: Add GET, PUT, DELETE for /:linkId/payments/:paymentId if needed
 
 export { router as campaignCreatorRouter }
