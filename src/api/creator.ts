@@ -91,7 +91,7 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
       ${creatorId},
       'discovered',
       ${new Date().toISOString()},
-      ${assignedBudget || null},
+      ${assignedBudget || 1000},
       ${notes || null},
       '{}'
     )
