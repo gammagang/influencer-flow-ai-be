@@ -1,4 +1,5 @@
 import { sql } from '@/libs/db'
+import { log } from '@/libs/logger'
 
 // This will contain the db calls for campaign-creator operations
 
@@ -129,6 +130,8 @@ export async function createCampaignCreatorLink(data: {
     notes
   } = data
 
+  log.debug('agreedDeliverables', agreedDeliverables)
+
   // Check if link already exists
   const existingLink = await sql`
     SELECT id FROM campaign_creator 
@@ -155,7 +158,7 @@ export async function createCampaignCreatorLink(data: {
       ${new Date().toISOString()},
       ${negotiatedRate || null},
       ${notes || null},
-      ${sql.json({ agreedDeliverables, contractId: contractId || null })}
+      ${sql.json({ agreedDeliverables: ['post', 'reel', 'story'], contractId: contractId || null })}
     )
     RETURNING *
   `
