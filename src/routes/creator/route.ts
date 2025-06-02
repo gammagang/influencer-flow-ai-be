@@ -36,8 +36,6 @@ function extractAgeFromGroup(ageGroup: string): number | null {
 }
 
 creatorsRouter.get('/discover', async (req: Request, res: Response) => {
-  log.info('Controller: GET /discover')
-
   // Parse query parameters - handle arrays correctly
   const country = req.query.country as string | undefined
   const tier = Array.isArray(req.query.tier)
