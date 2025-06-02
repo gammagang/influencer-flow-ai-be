@@ -5,6 +5,8 @@ import {
   getCampaignCreators,
   updateCampaignCreatorLink
 } from '@/api/campaign-creator'
+import { getCompanyById } from '@/api/company'
+import { sendOutreachEmailProgrammatic } from '@/api/email'
 import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { validateRequest } from '@/middlewares/validate-request'
@@ -13,6 +15,7 @@ import {
   CreatePaymentForCampaignCreatorSchema,
   LinkCreatorToCampaignSchema,
   ListCampaignCreatorsQuerySchema,
+  SendOutreachEmailSchema,
   UpdateCampaignCreatorLinkSchema
 } from './validate'
 
@@ -41,30 +44,19 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
 
-  const result = await getCampaignCreators({
-    campaignId: validatedQuery.campaignId,
-    creatorId: validatedQuery.creatorId,
-    status: validatedQuery.status,
-    page: validatedQuery.page,
-    limit: validatedQuery.limit
-  })
+  try {
+    const result = await getCampaignCreators({
+      campaignId: validatedQuery.campaignId,
+      creatorId: validatedQuery.creatorId,
+      status: validatedQuery.status,
+      page: validatedQuery.page,
+      limit: validatedQuery.limit
+    })
 
-  SuccessResponse.send({ res, data: result })
-})
-
-// GET Campaign Creator Mapping with creator lifecycle in state
-router.get('/', async (req: Request, res: Response) => {
-  const validatedQuery = validateRequest(ListCampaignCreatorsQuerySchema, req.query, req.path)
-
-  const result = await getCampaignCreators({
-    campaignId: validatedQuery.campaignId,
-    creatorId: validatedQuery.creatorId,
-    status: validatedQuery.status,
-    page: validatedQuery.page,
-    limit: validatedQuery.limit
-  })
-
-  SuccessResponse.send({ res, data: result })
+    SuccessResponse.send({ res, data: result })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to fetch campaign-creator links')
+  }
 })
 
 router.get('/:campaignCreatorMappingId', async (req: Request, res: Response) => {
@@ -126,6 +118,162 @@ router.delete('/:linkId', async (req: Request, res: Response) => {
   }
 })
 
+// Generate outreach email content (without sending)
+router.post('/:campaignCreatorMappingId/outreach/preview', async (req: Request, res: Response) => {
+  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
+  const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
+
+  try {
+    // Get detailed campaign-creator information
+    const campaignCreatorDetails =
+      await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+
+    if (!campaignCreatorDetails) {
+      throw new NotFoundError(
+        'Campaign-Creator link not found',
+        `Link with ID ${campaignCreatorMappingId} not found`,
+        req.path
+      )
+    }
+
+    // Extract data for email
+    const {
+      creator_name: creatorName,
+      creator_email: creatorEmail,
+      campaign_name: campaignName,
+      campaign_description: campaignDescription,
+      campaign_start_date: campaignStartDate,
+      campaign_end_date: campaignEndDate,
+      assigned_budget: assignedBudget,
+      company_id: companyId
+    } = campaignCreatorDetails
+
+    // Get company details for brand name
+    const company = await getCompanyById(companyId)
+    const brandName = company?.name || 'Brand'
+
+    // Prepare email data
+    const emailData = {
+      creatorName,
+      creatorEmail,
+      brandName,
+      campaignName,
+      campaignDetails: {
+        description: campaignDescription,
+        timeline:
+          campaignStartDate && campaignEndDate
+            ? `${new Date(campaignStartDate).toLocaleDateString()} - ${new Date(campaignEndDate).toLocaleDateString()}`
+            : undefined,
+        budget: assignedBudget ? `$${assignedBudget}` : undefined,
+        deliverables: campaignCreatorDetails.campaign_creator_meta?.agreedDeliverables || []
+      },
+      personalizedMessage: validatedBody.personalizedMessage,
+      negotiationLink: validatedBody.negotiationLink
+    }
+
+    // Generate email content without sending
+    const subject = `Partnership Opportunity with ${emailData.brandName} - ${emailData.campaignName}`
+    
+    SuccessResponse.send({
+      res,
+      data: {
+        message: 'Email content generated successfully',
+        emailContent: {
+          subject,
+          recipient: {
+            name: creatorName,
+            email: creatorEmail
+          },
+          campaignDetails: emailData.campaignDetails,
+          brandName,
+          campaignName,
+          personalizedMessage: validatedBody.personalizedMessage,
+          negotiationLink: validatedBody.negotiationLink
+        },
+        campaignCreatorMappingId
+      },
+      status: 200
+    })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to generate email content')
+  }
+})
+
+// Send outreach email to creator
+router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res: Response) => {
+  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
+  const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
+
+  try {
+    // Get detailed campaign-creator information
+    const campaignCreatorDetails =
+      await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+
+    if (!campaignCreatorDetails) {
+      throw new NotFoundError(
+        'Campaign-Creator link not found',
+        `Link with ID ${campaignCreatorMappingId} not found`,
+        req.path
+      )
+    }
+
+    // Extract data for email
+    const {
+      creator_name: creatorName,
+      creator_email: creatorEmail,
+      campaign_name: campaignName,
+      campaign_description: campaignDescription,
+      campaign_start_date: campaignStartDate,
+      campaign_end_date: campaignEndDate,
+      assigned_budget: assignedBudget,
+      company_id: companyId
+    } = campaignCreatorDetails
+
+    // Get company details for brand name
+    const company = await getCompanyById(companyId)
+    const brandName = company?.name || 'Brand'
+
+    // Prepare email data
+    const emailData = {
+      creatorName,
+      creatorEmail,
+      brandName,
+      campaignName,
+      campaignDetails: {
+        description: campaignDescription,
+        timeline:
+          campaignStartDate && campaignEndDate
+            ? `${new Date(campaignStartDate).toLocaleDateString()} - ${new Date(campaignEndDate).toLocaleDateString()}`
+            : undefined,
+        budget: assignedBudget ? `$${assignedBudget}` : undefined,
+        deliverables: campaignCreatorDetails.campaign_creator_meta?.agreedDeliverables || []
+      },
+      personalizedMessage: validatedBody.personalizedMessage,
+      negotiationLink: validatedBody.negotiationLink
+    }
+
+    // Send outreach email
+    const emailResult = await sendOutreachEmailProgrammatic(emailData)
+
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || 'Failed to send outreach email')
+    }
+
+    SuccessResponse.send({
+      res,
+      data: {
+        message: 'Outreach email sent successfully',
+        emailId: emailResult.data?.emailId,
+        recipient: creatorEmail,
+        campaignCreatorMappingId
+      },
+      status: 200
+    })
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to send outreach email')
+  }
+})
+
 // --- Nested Payment Routes for Campaign-Creator ---
 // Note: This is a simplified implementation for MVP. A full payment system would require
 // integration with payment processors and a dedicated payment table.
@@ -133,7 +281,6 @@ router.delete('/:linkId', async (req: Request, res: Response) => {
 router.post('/:linkId/payments', async (req: Request, res: Response) => {
   const linkId = req.params.linkId
   const validatedBody = validateRequest(CreatePaymentForCampaignCreatorSchema, req.body, req.path)
-
   try {
     // First verify the campaign-creator link exists
     const link = await getCampaignCreatorWithCampaignDetails(linkId)
@@ -169,6 +316,6 @@ router.post('/:linkId/payments', async (req: Request, res: Response) => {
   }
 })
 
-// TODO: Add GET, PUT, DELETE for /:linkId/payments/:paymentId if needed
+// TODO: Add GET, PUT, DELETE for /campaign-creator/:linkId/payments/:paymentId if needed
 
 export { router as campaignCreatorRouter }

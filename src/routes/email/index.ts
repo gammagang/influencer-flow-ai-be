@@ -1,5 +1,5 @@
+import { sendContractEmail, sendEmail, sendOutreachEmail, sendTestEmail } from '@/api/email'
 import { Router } from 'express'
-import { sendOutreachEmail, sendContractEmail, sendEmail, sendTestEmail } from '@/api/email'
 
 const router = Router()
 

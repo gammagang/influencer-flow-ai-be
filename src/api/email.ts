@@ -195,3 +195,58 @@ export const sendTestEmail = async (req: Request, res: Response) => {
     throw error
   }
 }
+
+/**
+ * Send outreach email programmatically (for use from other routes)
+ * Returns result instead of sending HTTP response
+ */
+export const sendOutreachEmailProgrammatic = async (emailData: {
+  creatorName: string
+  creatorEmail: string
+  brandName: string
+  campaignName: string
+  campaignDetails?: {
+    budget?: string
+    timeline?: string
+    deliverables?: string[]
+    description?: string
+  }
+  personalizedMessage?: string
+  negotiationLink?: string
+}) => {
+  try {
+    const validatedData = outreachEmailSchema.parse(emailData)
+
+    log.info('Sending outreach email programmatically', {
+      creatorEmail: validatedData.creatorEmail,
+      campaignName: validatedData.campaignName,
+      brandName: validatedData.brandName
+    })
+
+    const result = await emailService.sendOutreachEmail(validatedData as OutreachEmailData)
+
+    return {
+      success: true,
+      data: {
+        emailId: result?.id,
+        message: 'Outreach email sent successfully',
+        recipient: validatedData.creatorEmail
+      }
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      log.error('Invalid outreach email data:', { error: error.errors, emailData })
+      return {
+        success: false,
+        error: 'Invalid email data',
+        details: error.errors
+      }
+    }
+
+    log.error('Failed to send outreach email programmatically:', { error, emailData })
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }
+  }
+}

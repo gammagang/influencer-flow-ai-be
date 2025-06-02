@@ -53,3 +53,11 @@ export const CreatePaymentForCampaignCreatorSchema = z.object({
 export type CreatePaymentForCampaignCreatorReq = z.infer<
   typeof CreatePaymentForCampaignCreatorSchema
 >
+
+// Schema for sending outreach email to creator
+export const SendOutreachEmailSchema = z.object({
+  personalizedMessage: z.string().optional(),
+  negotiationLink: z.string().url().optional()
+})
+
+export type SendOutreachEmailReq = z.infer<typeof SendOutreachEmailSchema>
