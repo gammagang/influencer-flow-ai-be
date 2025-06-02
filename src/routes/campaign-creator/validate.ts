@@ -56,8 +56,15 @@ export type CreatePaymentForCampaignCreatorReq = z.infer<
 
 // Schema for sending outreach email to creator
 export const SendOutreachEmailSchema = z.object({
-  personalizedMessage: z.string().optional(),
-  negotiationLink: z.string().url().optional()
+  subject: z.string().min(1, 'Subject is required'),
+  body: z.string().min(1, 'Email body is required')
 })
 
 export type SendOutreachEmailReq = z.infer<typeof SendOutreachEmailSchema>
+
+// Schema for previewing outreach email content (before sending)
+export const PreviewOutreachEmailSchema = z.object({
+  personalizedMessage: z.string().optional()
+})
+
+export type PreviewOutreachEmailReq = z.infer<typeof PreviewOutreachEmailSchema>

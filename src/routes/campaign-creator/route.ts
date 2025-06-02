@@ -7,6 +7,7 @@ import {
 } from '@/api/campaign-creator'
 import { getCompanyById } from '@/api/company'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
+import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { validateRequest } from '@/middlewares/validate-request'
@@ -15,6 +16,7 @@ import {
   CreatePaymentForCampaignCreatorSchema,
   LinkCreatorToCampaignSchema,
   ListCampaignCreatorsQuerySchema,
+  PreviewOutreachEmailSchema,
   SendOutreachEmailSchema,
   UpdateCampaignCreatorLinkSchema
 } from './validate'
@@ -121,7 +123,7 @@ router.delete('/:linkId', async (req: Request, res: Response) => {
 // Generate (Preview) outreach email content (without sending)
 router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, res: Response) => {
   const campaignCreatorMappingId = req.params.campaignCreatorMappingId
-  const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
+  const validatedQuery = validateRequest(PreviewOutreachEmailSchema, req.query, req.path)
 
   try {
     // Get detailed campaign-creator information
@@ -134,12 +136,9 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
         `Link with ID ${campaignCreatorMappingId} not found`,
         req.path
       )
-    }
-
-    // Extract data for email
+    } // Extract data for email
     const {
       creator_name: creatorName,
-      creator_email: creatorEmail,
       campaign_name: campaignName,
       campaign_description: campaignDescription,
       campaign_start_date: campaignStartDate,
@@ -148,16 +147,18 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
       company_id: companyId
     } = campaignCreatorDetails
 
+    // Use default email for creator outreach
+    const creatorEmail = 'gammagang100x@gmail.com'
+
     // Get company details for brand name
     const company = await getCompanyById(companyId)
-    const brandName = company?.name || 'Brand'
-
-    // Prepare email data
+    const brandName = company?.name || 'Brand' // Prepare email data
     const emailData = {
-      creatorName,
-      creatorEmail,
-      brandName,
-      campaignName,
+      subject: `Partnership Opportunity with ${brandName} - ${campaignName}`,
+      recipient: {
+        name: creatorName,
+        email: creatorEmail
+      },
       campaignDetails: {
         description: campaignDescription,
         timeline:
@@ -167,32 +168,23 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
         budget: assignedBudget ? `$${assignedBudget}` : undefined,
         deliverables: campaignCreatorDetails.campaign_creator_meta?.agreedDeliverables || []
       },
-      personalizedMessage: validatedBody.personalizedMessage,
-      negotiationLink: validatedBody.negotiationLink
+      brandName,
+      campaignName,
+      personalizedMessage: validatedQuery.personalizedMessage,
+      negotiationLink: `https://influencer-flow-ai.netlify.app/agent-call?id=${campaignCreatorMappingId}`,
+      campaignCreatorMappingId
     }
 
-    // Generate email content without sending
-    const subject = `Partnership Opportunity with ${emailData.brandName} - ${emailData.campaignName}`
+    // Generate email content using AI
+    const generatedEmail = await generateUserOutreachEmail(emailData)
+    console.log(' generatedEmail:', generatedEmail)
 
     SuccessResponse.send({
       res,
       data: {
         message: 'Email content generated successfully',
-        emailContent: {
-          subject,
-          recipient: {
-            name: creatorName,
-            email: creatorEmail
-          },
-          campaignDetails: emailData.campaignDetails,
-          brandName,
-          campaignName,
-          personalizedMessage: validatedBody.personalizedMessage,
-          negotiationLink: validatedBody.negotiationLink
-        },
-        campaignCreatorMappingId
-      },
-      status: 200
+        ...generatedEmail
+      }
     })
   } catch (error: any) {
     throw new Error(error.message || 'Failed to generate email content')
@@ -201,71 +193,27 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
 
 // Send outreach email to creator
 router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res: Response) => {
-  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
   const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
 
   try {
-    // Get detailed campaign-creator information
-    const campaignCreatorDetails =
-      await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+    // Use default email for creator outreach
+    const creatorEmail = 'gammagang100x@gmail.com'
 
-    if (!campaignCreatorDetails) {
-      throw new NotFoundError(
-        'Campaign-Creator link not found',
-        `Link with ID ${campaignCreatorMappingId} not found`,
-        req.path
-      )
-    }
-
-    // Extract data for email
-    const {
-      creator_name: creatorName,
-      creator_email: creatorEmail,
-      campaign_name: campaignName,
-      campaign_description: campaignDescription,
-      campaign_start_date: campaignStartDate,
-      campaign_end_date: campaignEndDate,
-      assigned_budget: assignedBudget,
-      company_id: companyId
-    } = campaignCreatorDetails
-
-    // Get company details for brand name
-    const company = await getCompanyById(companyId)
-    const brandName = company?.name || 'Brand'
-
-    // Prepare email data
-    const emailData = {
-      creatorName,
-      creatorEmail,
-      brandName,
-      campaignName,
-      campaignDetails: {
-        description: campaignDescription,
-        timeline:
-          campaignStartDate && campaignEndDate
-            ? `${new Date(campaignStartDate).toLocaleDateString()} - ${new Date(campaignEndDate).toLocaleDateString()}`
-            : undefined,
-        budget: assignedBudget ? `$${assignedBudget}` : undefined,
-        deliverables: campaignCreatorDetails.campaign_creator_meta?.agreedDeliverables || []
-      },
-      personalizedMessage: validatedBody.personalizedMessage,
-      negotiationLink: validatedBody.negotiationLink
-    }
-
-    // Send outreach email
-    const emailResult = await sendOutreachEmailProgrammatic(emailData)
+    // Send the email content from frontend
+    const emailResult = await sendOutreachEmailProgrammatic({
+      to: creatorEmail,
+      subject: validatedBody.subject,
+      text: validatedBody.body,
+      html: validatedBody.body.replace(/\n/g, '<br>')
+    })
 
     if (!emailResult.success) {
       throw new Error(emailResult.error || 'Failed to send outreach email')
     }
-
     SuccessResponse.send({
       res,
       data: {
-        message: 'Outreach email sent successfully',
-        emailId: emailResult.data?.emailId,
-        recipient: creatorEmail,
-        campaignCreatorMappingId
+        message: 'Outreach email sent successfully'
       },
       status: 200
     })
