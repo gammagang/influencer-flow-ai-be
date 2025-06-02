@@ -31,7 +31,7 @@ export interface OutreachEmailData {
 }
 
 export class EmailService {
-  private readonly defaultFrom = 'onboarding@resend.dev'
+  private readonly defaultFrom = 'influencerflow@madhukm.com'
   async sendEmail(options: EmailOptions) {
     try {
       // Prepare the email payload - Resend requires either html/text or react
