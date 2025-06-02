@@ -62,14 +62,14 @@ app.use('/public', publicRoutes)
 app.get('/', (_: Request, res: Response) => {
   SuccessResponse.send({
     res,
-    title: 'Welcome to Influencer Flow AI Backend'
+    data: 'Welcome to Influencer Flow AI Backend'
   })
 })
 
 app.get('/health-check', async (_: Request, res: Response) => {
   SuccessResponse.send({
     res,
-    title: '⚡⚡⚡ Hello ⚡⚡⚡ - Server is healthy 💗'
+    data: '⚡⚡⚡ Hello ⚡⚡⚡ - Server is healthy 💗'
   })
 })
 
