@@ -169,7 +169,7 @@ export class EmailService {
       negotiationLink
     } = data
 
-    let emailText = `
+    const emailText = `
       Partnership Opportunity - ${brandName} × ${creatorName}
 
       Hi ${creatorName},

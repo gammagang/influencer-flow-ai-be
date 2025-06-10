@@ -162,7 +162,7 @@ export async function getCreators(filters: {
   const offset = (page - 1) * limit
 
   // Build WHERE clause based on filters
-  let whereConditions = []
+  const whereConditions = []
   if (platform) {
     whereConditions.push(`platform = '${platform}'`)
   }

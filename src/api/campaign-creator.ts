@@ -71,7 +71,7 @@ export async function getCampaignCreators(filters: {
   const offset = (page - 1) * limit
 
   // Build WHERE clause based on filters
-  let whereConditions = []
+  const whereConditions = []
 
   if (campaignId) {
     whereConditions.push(`campaign_id = '${campaignId}'`)

@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import { ContractInput } from './docuseal'
+import { log } from './logger'
 
 /**
  * Formats a date string from ISO format to DD/MM/YYYY
@@ -14,7 +15,7 @@ function formatDate(dateString: string): string {
       month: '2-digit',
       year: 'numeric'
     })
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid date format: ${dateString}`)
   }
 }
@@ -29,6 +30,7 @@ function formatCurrency(amount: number, currency: string): string {
       currency: currency
     }).format(amount)
   } catch (error) {
+    log.error(`Failed to format currency: ${error}`)
     return `${currency} ${amount}`
   }
 }

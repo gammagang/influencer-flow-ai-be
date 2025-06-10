@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import axios from 'axios'
 import type { DocuSealWebhookPayload } from '../../routes/webhook/validate'
-import { submitContract, type ContractInput } from '../../libs/docuseal'
-import docuseal from '@docuseal/api'
 
 // Mock axios and docuseal
 vi.mock('axios')
