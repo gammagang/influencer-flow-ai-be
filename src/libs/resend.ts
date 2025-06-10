@@ -107,16 +107,16 @@ export class EmailService {
     `
 
     const text = `
-Contract Ready for Signature - ${campaignName}
+      Contract Ready for Signature - ${campaignName}
 
-Dear ${creatorName},
+      Dear ${creatorName},
 
-Your contract for the ${campaignName} campaign with ${brandName} is ready.
+      Your contract for the ${campaignName} campaign with ${brandName} is ready.
 
-Please review and sign your contract here: ${contractLink}
+      Please review and sign your contract here: ${contractLink}
 
-Best regards,
-The ${brandName} Team
+      Best regards,
+      The ${brandName} Team
     `
 
     return this.sendEmail({
@@ -169,23 +169,25 @@ The ${brandName} Team
       negotiationLink
     } = data
 
-    let emailText = `Partnership Opportunity - ${brandName} × ${creatorName}
+    let emailText = `
+      Partnership Opportunity - ${brandName} × ${creatorName}
 
-Hi ${creatorName},
+      Hi ${creatorName},
 
-We're ${brandName}, and we'd love to collaborate with you on our ${campaignName} campaign.
+      We're ${brandName}, and we'd love to collaborate with you on our ${campaignName} campaign.
 
-${personalizedMessage ? `${personalizedMessage}\n` : ''}
+      ${personalizedMessage ? `${personalizedMessage}\n` : ''}
 
-Campaign Details:
-${campaignDetails?.budget ? `• Budget: ${campaignDetails.budget}\n` : ''}${campaignDetails?.timeline ? `• Timeline: ${campaignDetails.timeline}\n` : ''}${campaignDetails?.deliverables?.length ? `• Deliverables: ${campaignDetails.deliverables.join(', ')}\n` : ''}${campaignDetails?.description ? `• Description: ${campaignDetails.description}\n` : ''}
+      Campaign Details:
+      ${campaignDetails?.budget ? `• Budget: ${campaignDetails.budget}\n` : ''}${campaignDetails?.timeline ? `• Timeline: ${campaignDetails.timeline}\n` : ''}${campaignDetails?.deliverables?.length ? `• Deliverables: ${campaignDetails.deliverables.join(', ')}\n` : ''}${campaignDetails?.description ? `• Description: ${campaignDetails.description}\n` : ''}
 
-We believe your content style would be perfect for this campaign.
+      We believe your content style would be perfect for this campaign.
 
-${negotiationLink ? `To discuss this opportunity, please visit: ${negotiationLink}` : "Please let us know if you're interested."}
+      ${negotiationLink ? `To discuss this opportunity, please visit: ${negotiationLink}` : "Please let us know if you're interested."}
 
-Best regards,
-The ${brandName} Team`
+      Best regards,
+      The ${brandName} Team
+    `
 
     return emailText
   }

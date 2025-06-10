@@ -13,6 +13,8 @@ const configs = () => ({
   ylyticApiKey: process.env.YLYTIC_API_KEY || '',
   elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
   resendApiKey: process.env.RESEND_API_KEY || '',
+  docusealApiKey: process.env.DOCUSEAL_API_KEY || '',
+  negotiationHostUrl: process.env.NEGOTIATION_HOST_URL || 'http://localhost:8080',
   db: {
     databaseUrl: process.env.DATABASE_URL || ''
   }

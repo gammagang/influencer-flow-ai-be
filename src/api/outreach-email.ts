@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `
   2. Addresses the creator by name
   3. Introduces the brand and campaign concisely
   4. Incorporates the personalized message naturally
-  5. Includes the negotiation link (format: https://influencer-flow-ai.netlify.app/agent-call?id=<campaignCreatorMappingId>) with a clear call-to-action
+  5. Includes the negotiation link (format: Read from param: negotiationLink) with a clear call-to-action
   6. Maintains a professional yet friendly tone
   7. Keeps the email between 150-200 words
   8. Follows standard email formatting conventions
@@ -94,15 +94,13 @@ export async function generateUserOutreachEmail(candidate: any) {
 
   const mail = completion.choices[0].message.content
 
-  if (!mail) {
-    throw new Error('Failed to generate email content')
-  }
+  if (!mail) throw new Error('Failed to generate email content')
 
   try {
     const parsedResponse = JSON.parse(mail)
-    if (!parsedResponse.subject || !parsedResponse.body) {
+    if (!parsedResponse.subject || !parsedResponse.body)
       throw new Error('Invalid response format: missing subject or body')
-    }
+
     return {
       subject: parsedResponse.subject,
       body: parsedResponse.body

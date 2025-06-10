@@ -72,9 +72,8 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
     AND creator_id = ${creatorId}
   `
 
-  if (existingCampaignCreator.length > 0) {
+  if (existingCampaignCreator.length > 0)
     throw new Error(`Creator is already associated with this campaign`)
-  }
 
   // Create campaign-creator relationship
   const campaignCreatorResult = await sql`
@@ -93,7 +92,7 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
       ${new Date().toISOString()},
       ${assignedBudget || 1000},
       ${notes || null},
-      ${sql.json({ agreedDeliverables: ['post', 'reel', 'story'] })}
+      ${sql.json({})}
     )
     RETURNING *
   `

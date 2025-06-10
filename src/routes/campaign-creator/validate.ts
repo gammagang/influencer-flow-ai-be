@@ -19,7 +19,16 @@ export const LinkCreatorToCampaignSchema = z.object({
 export type LinkCreatorToCampaignReq = z.infer<typeof LinkCreatorToCampaignSchema>
 
 export const UpdateCampaignCreatorLinkSchema = z.object({
-  status: z.enum(['pending', 'approved', 'rejected', 'active', 'completed']).optional(),
+  status: z
+    .enum([
+      'discovered',
+      'outreached',
+      'call complete',
+      'waiting for contract',
+      'waiting for signature',
+      'fulfilled'
+    ])
+    .optional(),
   agreedDeliverables: z.array(z.string()).optional(),
   negotiatedRate: z.number().positive().optional(),
   contractId: z.string().uuid({ message: 'Invalid Contract ID' }).optional().nullable(), // Allow unsetting contract

@@ -13,7 +13,7 @@ router.use('/elevenlabs', elevenLabsRouter)
 
 // GET detailed campaign-creator information with related campaign data
 router.get(
-  '/campaign_creator_details/:campaignCreatorMappingId',
+  '/campaign-creator-details/:campaignCreatorMappingId',
   async (req: Request, res: Response) => {
     const campaignCreatorMappingId = req.params.campaignCreatorMappingId
 
@@ -40,7 +40,7 @@ router.get(
         lastStateChangeAt: result.last_state_change_at,
         assignedBudget: result.assigned_budget,
         notes: result.notes,
-        agreedDeliverables: campaignCreatorMeta.agreedDeliverables || [],
+        contentDeliverables: campaignCreatorMeta.contentDeliverables || [],
         contractId: campaignCreatorMeta.contractId || null
       },
       campaign: {

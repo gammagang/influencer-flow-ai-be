@@ -239,31 +239,6 @@
             "description": ""
           }
         }
-      },
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
       }
     },
     "/api/campaign/{campaignId}/creator": {
@@ -771,95 +746,10 @@
         }
       }
     },
-    "/api/webhook/{webhookId}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "webhookId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "webhookId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "delete": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "webhookId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/webhook/{webhookId}/simulate": {
+    "/api/webhook/docuseal": {
       "post": {
         "description": "",
         "parameters": [
-          {
-            "name": "webhookId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "authorization",
             "in": "header",
@@ -968,7 +858,7 @@
         }
       }
     },
-    "/public/campaign_creator_details/{campaignCreatorMappingId}": {
+    "/public/campaign-creator-details/{campaignCreatorMappingId}": {
       "get": {
         "description": "",
         "parameters": [

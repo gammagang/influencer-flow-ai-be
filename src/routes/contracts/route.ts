@@ -52,7 +52,7 @@ const mockContracts: any[] = [
     updatedAt: new Date('2025-05-20T00:00:00.000Z').toISOString()
   }
 ]
-
+// Create Contract
 router.post('', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(CreateContractReqSchema, req.body, req.path)
   const newContract = {
@@ -66,6 +66,7 @@ router.post('', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: newContract, status: 201 })
 })
 
+// GET all contracts
 router.get('', async (req: Request, res: Response) => {
   const validatedQuery = validateRequest(ListContractsQuerySchema, req.query, req.path)
   const {
@@ -126,6 +127,7 @@ router.get('', async (req: Request, res: Response) => {
   })
 })
 
+// Get Contract info with PDF link
 router.get('/:contractId', async (req: Request, res: Response) => {
   const { contractId } = req.params
   const contract = mockContracts.find((c) => c.id === contractId)

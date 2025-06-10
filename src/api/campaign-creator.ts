@@ -1,5 +1,6 @@
 import { sql } from '@/libs/db'
 import { log } from '@/libs/logger'
+import { UpdateCampaignCreatorLinkReq } from '@/routes/campaign-creator/validate'
 
 // This will contain the db calls for campaign-creator operations
 
@@ -115,22 +116,11 @@ export async function createCampaignCreatorLink(data: {
   campaignId: string
   creatorId: string
   status?: string
-  agreedDeliverables?: string[]
   negotiatedRate?: number
   contractId?: string | null
   notes?: string
 }) {
-  const {
-    campaignId,
-    creatorId,
-    status = 'pending',
-    agreedDeliverables = ['post', 'reel', 'story'],
-    negotiatedRate,
-    contractId,
-    notes
-  } = data
-
-  log.debug('agreedDeliverables', agreedDeliverables)
+  const { campaignId, creatorId, status = 'pending', negotiatedRate, notes } = data
 
   // Check if link already exists
   const existingLink = await sql`
@@ -158,7 +148,7 @@ export async function createCampaignCreatorLink(data: {
       ${new Date().toISOString()},
       ${negotiatedRate || null},
       ${notes || null},
-      ${sql.json({ agreedDeliverables: ['post', 'reel', 'story'], contractId: contractId || null })}
+      ${sql.json({})}
     )
     RETURNING *
   `
@@ -172,20 +162,19 @@ export async function createCampaignCreatorLink(data: {
 export async function updateCampaignCreatorLink(
   linkId: string,
   data: {
-    status?: string
+    status?: UpdateCampaignCreatorLinkReq['status']
     agreedDeliverables?: string[]
     negotiatedRate?: number
     contractId?: string | null
     notes?: string
   }
 ) {
+  log.info('Updating campaign-creator link', { linkId, data })
   const { status, agreedDeliverables, negotiatedRate, contractId, notes } = data
 
   // Get current link to merge meta data
   const currentLink = await getCampaignCreatorWithCampaignDetails(linkId)
-  if (!currentLink) {
-    throw new Error('Campaign-creator link not found')
-  }
+  if (!currentLink) throw new Error('Campaign-creator link not found')
 
   const currentMeta = currentLink.meta || {}
   const updatedMeta = {
@@ -214,6 +203,26 @@ export async function updateCampaignCreatorLink(
   `
 
   return result[0]
+}
+
+export async function updateCampaignCreatorState(
+  mappingId: string,
+  status: Exclude<UpdateCampaignCreatorLinkReq['status'], undefined>
+) {
+  log.info('Updating campaign-creator state', { mappingId, status })
+  const currentLink = await getCampaignCreatorWithCampaignDetails(mappingId)
+  if (!currentLink) throw new Error('Campaign-creator link not found')
+
+  await sql`
+    UPDATE campaign_creator 
+    SET 
+      current_state = ${status}
+    WHERE id = ${mappingId}
+    RETURNING *
+  `
+
+  const creatorCampaignDetails = await getCampaignCreatorWithCampaignDetails(mappingId)
+  return creatorCampaignDetails
 }
 
 /**

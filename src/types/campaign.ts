@@ -44,13 +44,12 @@ export interface Meta {
   deliverables: any[]
   targetAudience: TargetAudience
   creatorCriteria: CreatorCriteria
-  contentGuidelines: string
+  contentDeliverables: string
 }
 
 export interface Budget {
   total: string
   perCreator: string
-  paymentModel: string
 }
 
 export interface CreatorCriteria {
