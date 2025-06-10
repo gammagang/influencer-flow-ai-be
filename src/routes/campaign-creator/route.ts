@@ -20,6 +20,7 @@ import {
   SendOutreachEmailSchema,
   UpdateCampaignCreatorLinkSchema
 } from './validate'
+import configs from '@/configs'
 
 const router = Router()
 
@@ -167,7 +168,7 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
       brandName,
       campaignName,
       personalizedMessage: validatedQuery.personalizedMessage,
-      negotiationLink: `https://influencer-flow-ai.netlify.app/agent-call?id=${campaignCreatorMappingId}`,
+      negotiationLink: `${configs.negotiationHostUrl}/agent-call?id=${campaignCreatorMappingId}`,
       campaignCreatorMappingId
     }
 
