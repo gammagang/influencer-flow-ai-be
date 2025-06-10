@@ -12,10 +12,8 @@ export const CreateCampaignReqSchema = z.object({
   gender: z.string().optional(),
   interests: z.array(z.string()).optional(),
   deliverables: z.array(z.string()).optional(),
-  contentGuidelines: z.string().optional(),
-  totalBudget: z.string().optional(),
-  budgetPerCreator: z.string().optional(),
-  paymentModel: z.string().optional(),
+  contentDeliverables: z.string().min(1, { message: 'Content deliverables is required' }),
+  totalBudget: z.number().min(1, { message: 'Total Budget is required' }),
   followerRange: z.string().optional(),
   minEngagement: z.string().optional(),
   location: z.string().optional()

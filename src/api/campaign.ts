@@ -19,11 +19,9 @@ export async function createCampaign(campaign: CreateCampaignReq, companyId: str
       location: metaFields.location
     },
     deliverables: metaFields.deliverables,
-    contentGuidelines: metaFields.contentGuidelines,
+    contentDeliverables: metaFields.contentDeliverables,
     budget: {
-      total: metaFields.totalBudget,
-      perCreator: metaFields.budgetPerCreator,
-      paymentModel: metaFields.paymentModel
+      total: metaFields.totalBudget
     },
     creatorCriteria: {
       followerRange: metaFields.followerRange,

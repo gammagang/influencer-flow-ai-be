@@ -13,8 +13,7 @@ import { Router, type Request, type Response } from 'express'
 import {
   AddCreatorToCampaignReqSchema,
   CreateCampaignReqSchema,
-  ListCampaignsQuerySchema,
-  UpdateCampaignReqSchema
+  ListCampaignsQuerySchema
 } from './validate'
 import { addCreatorToCampaign } from '@/api/creator'
 import { ForbiddenError } from '@/errors/forbidden-error'
@@ -23,35 +22,6 @@ const campaignsRouter = Router()
 
 // TODO: Replace with actual database interactions and service logic
 
-// Mock database for campaigns
-const mockCampaigns: any[] = [
-  {
-    id: 'campaign-uuid-1',
-    name: 'Summer Sale Campaign',
-    description: 'Promotional campaign for summer products.',
-    startDate: new Date('2025-06-01T00:00:00.000Z').toISOString(),
-    endDate: new Date('2025-08-31T23:59:59.000Z').toISOString(),
-    budget: 50000,
-    companyId: 'company-uuid-123', // Relates to the sample company
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    meta: { engagementRate: '15%', totalReach: 120000 }
-  },
-  {
-    id: 'campaign-uuid-2',
-    name: 'New Product Launch',
-    description: 'Campaign to launch the new XZ series.',
-    startDate: new Date('2025-09-15T00:00:00.000Z').toISOString(),
-    endDate: new Date('2025-10-15T23:59:59.000Z').toISOString(),
-    budget: 75000,
-    companyId: 'company-uuid-123',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    meta: { preLaunchSignups: 500 }
-  }
-]
 // Create Campaign
 campaignsRouter.post('/', async (req: Request, res: Response) => {
   const company = await findCompanyByUserId(req.user?.sub || '')
@@ -104,9 +74,7 @@ campaignsRouter.get('/:id', async (req: Request, res: Response) => {
   const campaignId = req.params.id
 
   const company = await findCompanyByUserId(req.user?.sub || '')
-  if (!company?.id) {
-    throw new BadRequestError('No company found for the user', req.path)
-  }
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
 
   const campaign = await getCampaignById(campaignId)
 
@@ -119,29 +87,29 @@ campaignsRouter.get('/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign })
 })
 
-// Update Campaign
-campaignsRouter.put('/:id', async (req: Request, res: Response) => {
-  const campaignId = req.params.id
-  const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
+// // Update Campaign
+// campaignsRouter.put('/:id', async (req: Request, res: Response) => {
+//   const campaignId = req.params.id
+//   const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
 
-  const campaignIndex = mockCampaigns.findIndex((c) => c.id === campaignId)
-  if (campaignIndex === -1) {
-    throw new NotFoundError(
-      'Campaign not found',
-      `Campaign with ID ${campaignId} not found`,
-      req.path
-    )
-  }
+//   const campaignIndex = mockCampaigns.findIndex((c) => c.id === campaignId)
+//   if (campaignIndex === -1) {
+//     throw new NotFoundError(
+//       'Campaign not found',
+//       `Campaign with ID ${campaignId} not found`,
+//       req.path
+//     )
+//   }
 
-  const updatedCampaign = {
-    ...mockCampaigns[campaignIndex],
-    ...validatedBody,
-    updatedAt: new Date().toISOString()
-  }
-  mockCampaigns[campaignIndex] = updatedCampaign
+//   const updatedCampaign = {
+//     ...mockCampaigns[campaignIndex],
+//     ...validatedBody,
+//     updatedAt: new Date().toISOString()
+//   }
+//   mockCampaigns[campaignIndex] = updatedCampaign
 
-  SuccessResponse.send({ res, data: updatedCampaign })
-})
+//   SuccessResponse.send({ res, data: updatedCampaign })
+// })
 
 // Add Creator to Campaign
 campaignsRouter.put('/:campaignId/creator', async (req: Request, res: Response) => {
