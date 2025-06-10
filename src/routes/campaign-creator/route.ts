@@ -3,7 +3,8 @@ import {
   deleteCampaignCreatorLink,
   getCampaignCreatorWithCampaignDetails,
   getCampaignCreators,
-  updateCampaignCreatorLink
+  updateCampaignCreatorLink,
+  updateCampaignCreatorState
 } from '@/api/campaign-creator'
 import { getCompanyById } from '@/api/company'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
@@ -144,7 +145,7 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
       company_id: companyId
     } = campaignCreatorDetails
 
-    // Use default email for creator outreach
+    // Use default email for creator outreach - TODO: Change
     const creatorEmail = 'gammagang100x@gmail.com'
 
     // Get company details for brand name
@@ -191,7 +192,7 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
 // Send outreach email to creator
 router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
-
+  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
   try {
     // Send the email content from frontend
     const emailResult = await sendOutreachEmailProgrammatic({
@@ -201,13 +202,14 @@ router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res
       html: validatedBody.body.replace(/\n/g, '<br>')
     })
 
-    if (!emailResult.success) {
-      throw new Error(emailResult.error || 'Failed to send outreach email')
-    }
+    if (!emailResult.success) throw new Error(emailResult.error || 'Failed to send outreach email')
+    const campaign = await updateCampaignCreatorState(campaignCreatorMappingId, 'outreached')
+
     SuccessResponse.send({
       res,
       data: {
-        message: 'Outreach email sent successfully'
+        message: 'Outreach email sent successfully',
+        campaign
       },
       status: 200
     })

@@ -4,9 +4,10 @@ import { emailService, OutreachEmailData } from '@/libs/resend'
 import { SuccessResponse } from '@/libs/success-response'
 import { BadRequestError } from '@/errors/bad-request-error'
 import { log } from '@/libs/logger'
+import { validateRequest } from '@/middlewares/validate-request'
 
 // Schema for outreach email
-const outreachEmailSchema = z.object({
+const SendOutreachEmailSchema = z.object({
   creatorName: z.string().min(1, 'Creator name is required'),
   creatorEmail: z.string().email('Valid email is required'),
   brandName: z.string().min(1, 'Brand name is required'),
@@ -22,6 +23,7 @@ const outreachEmailSchema = z.object({
   personalizedMessage: z.string().optional(),
   negotiationLink: z.string().url().optional()
 })
+export type SendOutreachEmailReqBody = z.infer<typeof SendOutreachEmailSchema>
 
 // Schema for contract email
 const contractEmailSchema = z.object({
@@ -54,34 +56,25 @@ const generalEmailSchema = z
  * POST /api/email/outreach
  */
 export const sendOutreachEmail = async (req: Request, res: Response) => {
-  try {
-    const validatedData = outreachEmailSchema.parse(req.body)
+  const validatedData = validateRequest(SendOutreachEmailSchema, req.body, req.path)
 
-    log.info('Sending outreach email', {
-      creatorEmail: validatedData.creatorEmail,
-      campaignName: validatedData.campaignName,
-      brandName: validatedData.brandName
-    })
+  log.info('Sending outreach email', {
+    creatorEmail: validatedData.creatorEmail,
+    campaignName: validatedData.campaignName,
+    brandName: validatedData.brandName
+  })
 
-    const result = await emailService.sendOutreachEmail(validatedData as OutreachEmailData)
+  const result = await emailService.sendOutreachEmail(validatedData as OutreachEmailData)
 
-    SuccessResponse.send({
-      res,
-      data: {
-        emailId: result?.id,
-        message: 'Outreach email sent successfully',
-        recipient: validatedData.creatorEmail
-      },
-      status: 201
-    })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new BadRequestError('Invalid email data', JSON.stringify(error.errors))
-    }
-
-    log.error('Failed to send outreach email:', { error, body: req.body })
-    throw error
-  }
+  SuccessResponse.send({
+    res,
+    data: {
+      emailId: result?.id,
+      message: 'Outreach email sent successfully',
+      recipient: validatedData.creatorEmail
+    },
+    status: 201
+  })
 }
 
 /**
