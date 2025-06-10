@@ -1,35 +1,7 @@
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
-
-export type ContractInput = {
-  campaignTitle: string
-  campaignDescription: string
-  startDate: string // ISO format: "YYYY-MM-DD"
-  endDate: string // ISO format: "YYYY-MM-DD"
-  brand: {
-    name: string
-    contactPerson: string
-    email: string
-  }
-  influencer: {
-    name: string
-    instagramHandle: string
-    email: string
-    phone?: string
-  }
-  deliverables: string[] // Each deliverable as a bullet point
-  compensation: {
-    currency: string
-    amount: number
-    paymentMethod: string // e.g. "Stripe", "Razorpay"
-  }
-  jurisdiction: string // e.g. "Mumbai, India"
-  signature: {
-    brandSignatoryName: string
-    influencerSignatoryName: string
-  }
-}
+import { ContractInput } from './docuseal'
 
 /**
  * Formats a date string from ISO format to DD/MM/YYYY
@@ -100,56 +72,56 @@ export async function generateContract(
       const stream = fs.createWriteStream(outputPath)
       doc.pipe(stream)
 
-      // Set default font and size
-      doc.font('Helvetica')
+      // Set default font and size - Using Times-Roman as it's a standard built-in PDF font
+      doc.font('Times-Roman').fontSize(12)
 
       // Header
-      doc.fontSize(18).text('InfluencerFlow AI', { align: 'center' })
-      doc.fontSize(14).text('Brand–Influencer Campaign Agreement', { align: 'center' })
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.fontSize(18).font('Times-Bold').text('InfluencerFlow AI', { align: 'center' })
+      doc.fontSize(16).text('Brand–Influencer Campaign Agreement', { align: 'center' })
+      doc.moveDown(1.5)
 
       // Campaign details
-      doc.fontSize(12)
-      doc.text(`Campaign: ${contractInput.campaignTitle}`)
-      doc.text(`Campaign Description: ${contractInput.campaignDescription}`)
-      doc.text(`Start Date: ${formatDate(contractInput.startDate)}`)
-      doc.text(`End Date: ${formatDate(contractInput.endDate)}`)
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.font('Times-Roman').fontSize(12)
+      doc.text(`Campaign: ${contractInput.campaignTitle}`, { lineGap: 5 })
+      doc.text(`Campaign Description: ${contractInput.campaignDescription}`, { lineGap: 5 })
+      doc.text(`Start Date: ${formatDate(contractInput.startDate)}`, { lineGap: 5 })
+      doc.text(`End Date: ${formatDate(contractInput.endDate)}`, { lineGap: 5 })
+      doc.moveDown(2)
 
       // Section 1: Parties
-      doc.fontSize(14).text('1. Parties')
+      doc.fontSize(14).font('Times-Bold').text('1. Parties')
       doc.moveDown(0.5)
 
       // Brand
-      doc.fontSize(12).text('Brand:', { continued: true }).fontSize(10)
+      doc.fontSize(12).font('Times-Bold').text('Brand:')
+      doc.font('Times-Roman').fontSize(12)
       doc.moveDown(0.5)
-      doc.text(`Brand Name: ${contractInput.brand.name}`)
-      doc.text(`Contact Person: ${contractInput.brand.contactPerson}`)
-      doc.text(`Contact Email: ${contractInput.brand.email}`)
+      doc.text(`Brand Name: ${contractInput.brand.name}`, { indent: 20, lineGap: 3 })
+      doc.text(`Contact Person: ${contractInput.brand.contactPerson}`, { indent: 20, lineGap: 3 })
+      doc.text(`Contact Email: ${contractInput.brand.email}`, { indent: 20, lineGap: 3 })
       doc.moveDown()
 
       // Influencer
-      doc.fontSize(12).text('Influencer:', { continued: true }).fontSize(10)
+      doc.fontSize(12).font('Times-Bold').text('Influencer:')
+      doc.font('Times-Roman').fontSize(12)
       doc.moveDown(0.5)
-      doc.text(`Name: ${contractInput.influencer.name}`)
-      doc.text(`Instagram Handle: ${contractInput.influencer.instagramHandle}`)
-      doc.text(`Email: ${contractInput.influencer.email}`)
+      doc.text(`Name: ${contractInput.influencer.name}`, { indent: 20, lineGap: 3 })
+      doc.text(`Instagram Handle: ${contractInput.influencer.instagramHandle}`, {
+        indent: 20,
+        lineGap: 3
+      })
+      doc.text(`Email: ${contractInput.influencer.email}`, { indent: 20, lineGap: 3 })
       if (contractInput.influencer.phone) {
-        doc.text(`Phone: ${contractInput.influencer.phone}`)
+        doc.text(`Phone: ${contractInput.influencer.phone}`, { indent: 20, lineGap: 3 })
       }
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 2: Deliverables
-      doc.fontSize(14).text('2. Deliverables')
+      doc.fontSize(14).font('Times-Bold').text('2. Deliverables')
       doc.moveDown(0.5)
       doc
-        .fontSize(10)
+        .font('Times-Roman')
+        .fontSize(12)
         .text(
           'The Influencer agrees to produce and publish the following content on Instagram as part of this campaign:'
         )
@@ -157,33 +129,28 @@ export async function generateContract(
 
       // Deliverables as bullet points
       contractInput.deliverables.forEach((deliverable, index) => {
-        doc.text(`• ${deliverable}`, {
-          indent: 10,
-          align: 'left'
-        })
-        if (index < contractInput.deliverables.length - 1) {
-          doc.moveDown(0.5)
-        }
+        doc.text(`• ${deliverable}`, { indent: 10, align: 'left', lineGap: 5 })
+        if (index < contractInput.deliverables.length - 1) doc.moveDown(0.5)
       })
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 3: Content Guidelines
-      doc.fontSize(14).text('3. Content Guidelines')
+      doc.fontSize(14).font('Times-Bold').text('3. Content Guidelines')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text("• Content must comply with Instagram's community guidelines and applicable laws.", {
         indent: 10,
-        align: 'left'
+        align: 'left',
+        lineGap: 3
       })
       doc.moveDown(0.5)
       doc.text(
         '• Required hashtags, tags, and mentions must be included as specified by the Brand.',
         {
           indent: 10,
-          align: 'left'
+          align: 'left',
+          lineGap: 3
         }
       )
       doc.moveDown(0.5)
@@ -191,37 +158,32 @@ export async function generateContract(
         '• All content should be original and must not infringe on any third-party rights.',
         {
           indent: 10,
-          align: 'left'
+          align: 'left',
+          lineGap: 3
         }
       )
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 4: Compensation & Payment
-      doc.fontSize(14).text('4. Compensation & Payment')
+      doc.fontSize(14).font('Times-Bold').text('4. Compensation & Payment')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
 
       // Format currency
-      const formattedAmount = formatCurrency(
-        contractInput.compensation.amount,
-        contractInput.compensation.currency
-      )
+      const formattedAmount = contractInput.compensation.amount
+        ? formatCurrency(
+            parseInt(contractInput.compensation.amount.toString(), 10),
+            contractInput.compensation.currency
+          )
+        : ''
 
-      doc.text(`• Total agreed compensation: ${formattedAmount}`, {
-        indent: 10,
-        align: 'left'
-      })
+      doc.text(`• Total agreed compensation: ${formattedAmount}`, { indent: 10, align: 'left' })
       doc.moveDown(0.5)
       doc.text('• Payment will be made in two installments:', {
         indent: 10,
         align: 'left'
       })
-      doc.text('   - 50% upon contract signing', {
-        indent: 20,
-        align: 'left'
-      })
+      doc.text('   - 50% upon contract signing', { indent: 20, align: 'left' })
       doc.text('   - 50% upon content submission and Brand verification', {
         indent: 20,
         align: 'left'
@@ -232,130 +194,95 @@ export async function generateContract(
         align: 'left'
       })
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 5: Usage Rights & Exclusivity
-      doc.fontSize(14).text('5. Usage Rights & Exclusivity')
+      doc.fontSize(14).font('Times-Bold').text('5. Usage Rights & Exclusivity')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text(
         '• The Brand is granted a non-exclusive, royalty-free, worldwide license to use, display, and promote the campaign content on its owned channels and marketing materials for a period of 12 months from publication.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
       doc.moveDown(0.5)
-      doc.text('• The Influencer retains ownership of the content.', {
-        indent: 10,
-        align: 'left'
-      })
+      doc.text('• The Influencer retains ownership of the content.', { indent: 10, align: 'left' })
       doc.moveDown(0.5)
       doc.text(
         '• The Influencer agrees not to promote direct competitors of the Brand in the same product category for 30 days following the campaign end date.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 6: Confidentiality
-      doc.fontSize(14).text('6. Confidentiality')
+      doc.fontSize(14).font('Times-Bold').text('6. Confidentiality')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text(
         'Both parties agree to keep confidential any non-public information shared during the campaign, including compensation, strategy, and other sensitive details.'
       )
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 7: Termination
-      doc.fontSize(14).text('7. Termination')
+      doc.fontSize(14).font('Times-Bold').text('7. Termination')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text(
         '• Either party may terminate this agreement with written notice if the other party breaches any material term.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
       doc.moveDown(0.5)
       doc.text(
         '• In case of early termination after content creation but before posting, compensation will be adjusted based on deliverables provided.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 8: Dispute Resolution
-      doc.fontSize(14).text('8. Dispute Resolution')
+      doc.fontSize(14).font('Times-Bold').text('8. Dispute Resolution')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text(
         `Any disputes shall be resolved amicably through mutual discussion. If unresolved, the matter will be subject to the jurisdiction of ${contractInput.jurisdiction}.`
       )
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 9: Miscellaneous
-      doc.fontSize(14).text('9. Miscellaneous')
+      doc.fontSize(14).font('Times-Bold').text('9. Miscellaneous')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text(
         '• Any amendments to this contract must be made in writing and signed by both parties.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
       doc.moveDown(0.5)
       doc.text(
         '• This agreement constitutes the entire understanding between both parties regarding this campaign.',
-        {
-          indent: 10,
-          align: 'left'
-        }
+        { indent: 10, align: 'left' }
       )
 
-      doc.moveDown()
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke()
-      doc.moveDown()
+      doc.moveDown(2)
 
       // Section 10: Acceptance & Signatures
-      doc.fontSize(14).text('10. Acceptance & Signatures')
+      doc.fontSize(14).font('Times-Bold').text('10. Acceptance & Signatures')
       doc.moveDown(0.5)
-      doc.fontSize(10)
+      doc.fontSize(12).font('Times-Roman')
       doc.text('By signing below, both parties agree to the terms outlined in this agreement.')
-      doc.moveDown()
+      doc.moveDown(1.5)
 
       // Brand signature
-      doc.text('Brand Representative:')
-      doc.text('Signature: ________________________', { indent: 10 })
+      doc.text('Brand Representative:', { lineGap: 5 })
+      doc.text('Signature: ________________________', { indent: 10, lineGap: 5 })
       doc.text(`Name: ${contractInput.signature.brandSignatoryName}`, { indent: 10 })
-      doc.moveDown()
+      doc.moveDown(1.5)
 
       // Influencer signature
-      doc.text('Influencer:')
-      doc.text('Signature: ________________________', { indent: 10 })
-      doc.text(`Name: ${contractInput.signature.influencerSignatoryName}`, { indent: 10 })
-
-      // Add current date at the bottom
+      doc.text('Influencer:', { lineGap: 5 })
+      doc.text('Signature: ________________________', { indent: 10, lineGap: 5 })
+      doc.text(`Name: ${contractInput.signature.influencerSignatoryName}`, { indent: 10 }) // Add current date at the bottom left of the last page
       const currentDate = new Date()
       const formattedCurrentDate = currentDate.toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -363,8 +290,15 @@ export async function generateContract(
         year: 'numeric'
       })
 
-      doc.moveDown()
-      doc.fontSize(8).text(`Contract generated on ${formattedCurrentDate}`, { align: 'center' })
+      // Move to the absolute bottom of the page (footer area)
+      // Ensure there's plenty of space below the signatures
+      doc.y = doc.page.height - doc.page.margins.bottom - 10
+
+      // Add the date at the bottom left with light gray color for subtlety
+      doc
+        .fontSize(8)
+        .fillColor('#888888')
+        .text(`Contract generated on ${formattedCurrentDate}`, { align: 'left' })
 
       // Finalize the PDF
       doc.end()
@@ -378,11 +312,8 @@ export async function generateContract(
         reject(new Error(`Error writing PDF to file: ${err.message}`))
       })
     } catch (error) {
-      if (error instanceof Error) {
-        reject(new Error(`Failed to generate contract: ${error.message}`))
-      } else {
-        reject(new Error('Failed to generate contract due to unknown error'))
-      }
+      if (error instanceof Error) reject(new Error(`Failed to generate contract: ${error.message}`))
+      else reject(new Error('Failed to generate contract due to unknown error'))
     }
   })
 }
