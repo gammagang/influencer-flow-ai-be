@@ -32,7 +32,6 @@ router.post('/', async (req: Request, res: Response) => {
     campaignId: validatedBody.campaignId,
     creatorId: validatedBody.creatorId,
     status: validatedBody.status || 'pending',
-    agreedDeliverables: validatedBody.agreedDeliverables,
     negotiatedRate: validatedBody.negotiatedRate,
     contractId: validatedBody.contractId,
     notes: validatedBody.notes

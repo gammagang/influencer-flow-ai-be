@@ -116,22 +116,11 @@ export async function createCampaignCreatorLink(data: {
   campaignId: string
   creatorId: string
   status?: string
-  agreedDeliverables?: string[]
   negotiatedRate?: number
   contractId?: string | null
   notes?: string
 }) {
-  const {
-    campaignId,
-    creatorId,
-    status = 'pending',
-    agreedDeliverables = ['post', 'reel', 'story'],
-    negotiatedRate,
-    contractId,
-    notes
-  } = data
-
-  log.debug('agreedDeliverables', agreedDeliverables)
+  const { campaignId, creatorId, status = 'pending', negotiatedRate, notes } = data
 
   // Check if link already exists
   const existingLink = await sql`
@@ -159,7 +148,7 @@ export async function createCampaignCreatorLink(data: {
       ${new Date().toISOString()},
       ${negotiatedRate || null},
       ${notes || null},
-      ${sql.json({ agreedDeliverables: ['post', 'reel', 'story'], contractId: contractId || null })}
+      ${sql.json({})}
     )
     RETURNING *
   `

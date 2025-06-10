@@ -40,7 +40,7 @@ router.get(
         lastStateChangeAt: result.last_state_change_at,
         assignedBudget: result.assigned_budget,
         notes: result.notes,
-        agreedDeliverables: campaignCreatorMeta.agreedDeliverables || [],
+        contentDeliverables: campaignCreatorMeta.contentDeliverables || [],
         contractId: campaignCreatorMeta.contractId || null
       },
       campaign: {
