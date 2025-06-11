@@ -1,20 +1,17 @@
 import { sql } from '@/libs/db'
 import { AddCreatorToCampaignReq } from '@/routes/campaign/validate'
+import { getCampaignById } from './campaign'
 
 /**
  * Create or find an existing creator and add them to a campaign
  */
 export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
   const { campaignId, creatorData, assignedBudget, notes } = data
-
   // First, check if campaign exists
-  const campaignResult = await sql`
-    SELECT id FROM campaign WHERE id = ${campaignId}
-  `
+  const existingCampaign = await getCampaignById(campaignId)
 
-  if (campaignResult.length === 0) {
-    throw new Error(`Campaign with ID ${campaignId} not found`)
-  }
+  console.log('Campaign Result:', JSON.stringify(existingCampaign))
+  if (!existingCampaign) throw new Error(`Campaign with ID ${campaignId} not found`)
 
   // Check if creator already exists (upsert approach)
   let creatorId: number
@@ -92,33 +89,37 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
       ${new Date().toISOString()},
       ${assignedBudget || 1000},
       ${notes || null},
-      ${sql.json({})}
+      ${sql.json({
+        campaignInfo: {
+          contentDeliverables: existingCampaign.meta.contentDeliverables
+        }
+      })}
     )
     RETURNING *
   `
 
   const campaignCreatorId = campaignCreatorResult[0].id
 
-  // Create audit entry for the initial state
-  await sql`
-    INSERT INTO campaign_creator_audit (
-      campaign_creator_id,
-      previous_state,
-      new_state,
-      changed_at,
-      changed_by,
-      notes,
-      meta
-    ) VALUES (
-      ${campaignCreatorId},
-      ${null},
-      'discovered',
-      ${new Date().toISOString()},
-      'system',
-      'Creator added to campaign',
-      '{}'
-    )
-  `
+  // TODO: Add later Create audit entry for the initial state
+  // await sql`
+  //   INSERT INTO campaign_creator_audit (
+  //     campaign_creator_id,
+  //     previous_state,
+  //     new_state,
+  //     changed_at,
+  //     changed_by,
+  //     notes,
+  //     meta
+  //   ) VALUES (
+  //     ${campaignCreatorId},
+  //     ${null},
+  //     'discovered',
+  //     ${new Date().toISOString()},
+  //     'system',
+  //     'Creator added to campaign',
+  //     '{}'
+  //   )
+  // `
 
   // Return the complete result with creator and campaign-creator data
   const result = await sql`
