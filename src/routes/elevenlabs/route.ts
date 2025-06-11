@@ -4,18 +4,16 @@ import { validateElevenLabsSignature } from '@/middlewares/elevenlabs-signature'
 import { log } from '@/libs/logger'
 import { sql } from '@/libs/db'
 import { ElevenLabsWebhookSchema, type ElevenLabsWebhook } from './validate'
+import { updateCampaignCreatorState } from '@/api/campaign-creator'
 
 const elevenLabsRouter = Router()
 
-// Webhook endpoint
+// Webhook endpoint for Eleven labs post call
 elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
 
   try {
-    // Parse the raw body back to JSON for validation
-
     const { type, event_timestamp, data } = req.body
-
     const body = { type, event_timestamp, data }
 
     // Validate webhook payload
@@ -33,6 +31,7 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
       callSuccessful: validatedData.data.analysis.call_successful,
       transcriptLength: validatedData.data.transcript.length
     }) // Process transcript messages (filter out null messages)
+
     const messages = validatedData.data.transcript
       .filter((item) => item.message !== null)
       .map((item) => ({
@@ -106,7 +105,7 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
           ${agreedPrice},
           ${timeline},
           ${null}, -- call_recording_url not available in current schema
-          ${JSON.stringify({
+          ${sql.json({
             conversation_id: conversationId,
             status: validatedData.data.status,
             call_duration_secs: validatedData.data.metadata?.call_duration_secs || null,
@@ -115,7 +114,8 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
             original_analysis: validatedData.data.analysis,
             evaluation_criteria_results: validatedData.data.analysis.evaluation_criteria_results,
             data_collection_results: validatedData.data.analysis.data_collection_results
-          })}        )
+          })}       
+        )
         RETURNING id
       `
 
@@ -131,8 +131,10 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
 
       // If the call was successful, you might want to update the campaign_creator state
       if (validatedData.data.analysis.call_successful === 'success') {
-        // TODO: Update campaign_creator current_state if needed
-        // TODO: Create or update contract if negotiation was successful
+        await updateCampaignCreatorState(campaignCreatorId.toString(), 'call complete')
+
+        // TODO: Call Contract creation Flow here
+        // Contract created -> Update db -? Should be visible on Console for Brand to sign. Then Creator is sent the email.
         // TODO: Trigger follow-up actions like sending contracts
         log.info('Call was successful - consider triggering follow-up actions', {
           negotiationAttemptId,
