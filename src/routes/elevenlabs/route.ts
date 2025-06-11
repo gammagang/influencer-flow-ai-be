@@ -5,23 +5,26 @@ import { log } from '@/libs/logger'
 import { sql } from '@/libs/db'
 import { ElevenLabsWebhookSchema, type ElevenLabsWebhook } from './validate'
 
-const router = Router()
+const elevenLabsRouter = Router()
 
 // Webhook endpoint
-router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
+elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
 
   try {
     // Parse the raw body back to JSON for validation
-    const bodyStr = req.body.toString()
-    const parsedBody = JSON.parse(bodyStr)
+
+    const { type, event_timestamp, data } = req.body
+
+    const body = { type, event_timestamp, data }
 
     // Validate webhook payload
     const validatedData = validateRequest<ElevenLabsWebhook>(
       ElevenLabsWebhookSchema,
-      parsedBody,
+      body,
       'ElevenLabs Webhook'
     ) // Process the webhook data
+
     log.info('Received ElevenLabs webhook:', {
       type: validatedData.type,
       conversationId: validatedData.data.conversation_id,
@@ -157,7 +160,7 @@ router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
 })
 
 // New endpoint to update negotiation attempt with raw data in meta column
-router.put('/store-meta/:id', async (req, res) => {
+elevenLabsRouter.put('/store-meta/:id', async (req, res) => {
   log.info('ElevenLabs store-meta endpoint called for update')
 
   try {
@@ -225,4 +228,4 @@ router.put('/store-meta/:id', async (req, res) => {
   }
 })
 
-export { router as elevenLabsRouter }
+export { elevenLabsRouter }
