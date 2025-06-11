@@ -163,41 +163,34 @@ export async function updateCampaignCreatorLink(
   linkId: string,
   data: {
     status?: UpdateCampaignCreatorLinkReq['status']
-    agreedDeliverables?: string[]
+    contentDeliverables?: string
     negotiatedRate?: number
     contractId?: string | null
     notes?: string
   }
 ) {
   log.info('Updating campaign-creator link', { linkId, data })
-  const { status, agreedDeliverables, negotiatedRate, contractId, notes } = data
+  const { status, contentDeliverables, negotiatedRate, contractId } = data
 
   // Get current link to merge meta data
   const currentLink = await getCampaignCreatorWithCampaignDetails(linkId)
   if (!currentLink) throw new Error('Campaign-creator link not found')
 
-  const currentMeta = currentLink.meta || {}
-  const updatedMeta = {
-    ...currentMeta,
-    ...(agreedDeliverables !== undefined && { agreedDeliverables }),
-    ...(contractId !== undefined && { contractId })
-  }
+  const updatedMeta = currentLink.meta || {}
+  if (contentDeliverables) updatedMeta.contentDeliverables = contentDeliverables
+  if (contractId) updatedMeta.contractId = contentDeliverables
 
   // Use conditional logic for the update
-  const newState = status !== undefined ? status : currentLink.current_state
-  const newBudget = negotiatedRate !== undefined ? negotiatedRate : currentLink.assigned_budget
-  const newNotes = notes !== undefined ? notes : currentLink.notes
-  const newStateChangeTime =
-    status !== undefined ? new Date().toISOString() : currentLink.last_state_change_at
+  const newState = status ? status : currentLink.campaign_creator_current_state
+  const newBudget = negotiatedRate ? negotiatedRate : currentLink.assigned_budget
 
   const result = await sql`
     UPDATE campaign_creator 
     SET 
       current_state = ${newState},
       assigned_budget = ${newBudget},
-      notes = ${newNotes},
-      meta = ${JSON.stringify(updatedMeta)},
-      last_state_change_at = ${newStateChangeTime}
+      meta = ${sql.json(updatedMeta)},
+      last_state_change_at = CURRENT_TIMESTAMP
     WHERE id = ${linkId}
     RETURNING *
   `

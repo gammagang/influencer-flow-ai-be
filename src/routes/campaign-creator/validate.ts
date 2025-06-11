@@ -29,9 +29,9 @@ export const UpdateCampaignCreatorLinkSchema = z.object({
       'fulfilled'
     ])
     .optional(),
-  agreedDeliverables: z.array(z.string()).optional(),
   negotiatedRate: z.number().positive().optional(),
   contractId: z.string().uuid({ message: 'Invalid Contract ID' }).optional().nullable(), // Allow unsetting contract
+  contentDeliverables: z.string().optional(), // Allow unsetting contract
   // Add any other updatable fields related to this link
   notes: z.string().optional()
 })
