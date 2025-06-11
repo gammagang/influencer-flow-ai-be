@@ -1,5 +1,6 @@
 import configs from '@/configs'
 import { log } from '@/libs/logger'
+import mockYlticSearchResponse from '@/mock-data/yltic.search.json'
 
 // const YLYTIC_API_BASE_URL = 'https://app.ylytic.com/ylytic/admin/api/v1/search'
 const YLYTIC_API_BASE_URL = 'https://dashboard.ylytic.com/ylytic/admin/api/v1/search'
@@ -108,6 +109,11 @@ export interface DiscoveredCreator {
   inMyCreators: boolean // Changed: No longer optional
 }
 
+function mockYlticCreatorDiscovery(): DiscoverCreatorResponse {
+  log.info('API: Sending back MOCKED YLTIC Creator discovery call:')
+  return mockYlticSearchResponse.response as DiscoverCreatorResponse
+}
+
 export interface DiscoverCreatorResponse {
   objects: DiscoveredCreator[]
   // Based on the provided sample, the response is an object with an "objects" array.
@@ -127,7 +133,8 @@ export const discoverCreator = async (
   const actualParams = { ...params, connector: 'instagram', limit: 12, skip: 0, type: 'discovery' } // Default to Instagram for now
   log.info('API: discoverCreator called with params:', actualParams)
 
-  const apiKey = configs.ylyticApiKey
+  if (configs.yltic.isMocked) return mockYlticCreatorDiscovery()
+  const apiKey = configs.yltic.apiKey
   if (!apiKey) {
     // log.error('API: YLYTIC_API_KEY is not set in environment variables.', {}) // Ensure log.error has a context object if needed by your logger setup
     log.error('API: YLYTIC_API_KEY is not set in environment variables.')
@@ -170,10 +177,10 @@ export const discoverCreator = async (
     const response = await fetch(requestUrl, { headers })
 
     if (!response.ok) {
-      let errorData: any
+      let errorData: { message?: string } = {}
       try {
-        errorData = await response.json()
-      } catch (e) {
+        errorData = (await response.json()) as { message?: string }
+      } catch {
         errorData = { message: response.statusText }
       }
       log.error('API: Ylytic API request failed:', {

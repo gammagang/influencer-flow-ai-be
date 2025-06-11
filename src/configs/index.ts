@@ -10,7 +10,10 @@ const configs = () => ({
     correlationIdField: process.env.CORR_ID || 'x-correlation-id'
   },
   groqApiKey: process.env.GROQ_API_KEY || '',
-  ylyticApiKey: process.env.YLYTIC_API_KEY || '',
+  yltic: {
+    apiKey: process.env.YLYTIC_API_KEY || '',
+    isMocked: process.env.IS_YLYTIC_MOCKED === 'true' || false
+  },
   elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
   resendApiKey: process.env.RESEND_API_KEY || '',
   docusealApiKey: process.env.DOCUSEAL_API_KEY || '',
