@@ -36,12 +36,12 @@ router.get(
         id: result.id,
         campaignId: result.campaign_id,
         creatorId: result.creator_id,
-        currentState: result.current_state,
         lastStateChangeAt: result.last_state_change_at,
         assignedBudget: result.assigned_budget,
         notes: result.notes,
         contentDeliverables: campaignCreatorMeta.contentDeliverables || [],
-        contractId: campaignCreatorMeta.contractId || null
+        contractId: campaignCreatorMeta.contractId || null,
+        currentState: result.campaign_creator_current_state
       },
       campaign: {
         startDate: result.campaign_start_date,
