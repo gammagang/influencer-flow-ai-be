@@ -109,9 +109,120 @@ export interface DiscoveredCreator {
   inMyCreators: boolean // Changed: No longer optional
 }
 
-function mockYlticCreatorDiscovery(): DiscoverCreatorResponse {
-  log.info('API: Sending back MOCKED YLTIC Creator discovery call:')
-  return mockYlticSearchResponse.response as DiscoverCreatorResponse
+function mockYlticCreatorDiscovery(params: DiscoverCreatorParams): DiscoverCreatorResponse {
+  log.info('API: Sending back MOCKED YLTIC Creator discovery call with params:', params)
+
+  const mockResponse = mockYlticSearchResponse.response as DiscoverCreatorResponse
+  let filteredCreators = [...mockResponse.objects]
+
+  // Apply category filter
+  if (params.category && params.category.length > 0) {
+    filteredCreators = filteredCreators.filter(
+      (creator) =>
+        creator.category &&
+        params.category!.some((cat) => creator.category.toLowerCase().includes(cat.toLowerCase()))
+    )
+  }
+
+  // Apply tier filter (follower count ranges)
+  if (params.tier && params.tier.length > 0) {
+    filteredCreators = filteredCreators.filter((creator) => {
+      const followers = creator.followers
+      const creatorTier = mapFollowerCountToTier(followers)
+      return params.tier!.includes(creatorTier as TierType)
+    })
+  }
+
+  // Apply country filter
+  if (params.country) {
+    filteredCreators = filteredCreators.filter(
+      (creator) =>
+        creator.country && creator.country.toLowerCase() === params.country!.toLowerCase()
+    )
+  }
+
+  // Apply location filter
+  if (params.location) {
+    filteredCreators = filteredCreators.filter(
+      (creator) =>
+        creator.location && creator.location.toLowerCase().includes(params.location!.toLowerCase())
+    )
+  }
+
+  // Apply gender filter
+  if (params.gender) {
+    filteredCreators = filteredCreators.filter(
+      (creator) => creator.gender && creator.gender.toLowerCase() === params.gender!.toLowerCase()
+    )
+  }
+
+  // Apply language filter
+  if (params.language && params.language.length > 0) {
+    filteredCreators = filteredCreators.filter(
+      (creator) =>
+        creator.languages &&
+        creator.languages.some((lang) =>
+          params.language!.some((searchLang) =>
+            lang.toLowerCase().includes(searchLang.toLowerCase())
+          )
+        )
+    )
+  }
+
+  // Apply bio search filter
+  if (params.bio) {
+    const bioKeywords = params.bio.toLowerCase().split(' ')
+    filteredCreators = filteredCreators.filter((creator) =>
+      bioKeywords.some(
+        (keyword) =>
+          creator.full_name?.toLowerCase().includes(keyword) ||
+          creator.handle.toLowerCase().includes(keyword)
+      )
+    )
+  }
+
+  // Apply engagement rate filter
+  if (params.er && params.er.length > 0) {
+    filteredCreators = filteredCreators.filter((creator) => {
+      const engagementRate = creator.engagement
+      return params.er!.some((range) => {
+        switch (range) {
+          case 'vlow':
+            return engagementRate >= 0 && engagementRate < 1
+          case 'low':
+            return engagementRate >= 1 && engagementRate < 3
+          case 'micro':
+            return engagementRate >= 3 && engagementRate < 5
+          case 'mid':
+            return engagementRate >= 5 && engagementRate < 7
+          case 'macro':
+            return engagementRate >= 7 && engagementRate < 10
+          case 'high':
+            return engagementRate >= 10 && engagementRate < 15
+          case 'vhigh':
+            return engagementRate >= 15
+          default:
+            return false
+        }
+      })
+    })
+  }
+
+  return {
+    objects: filteredCreators
+  }
+}
+
+// Helper function to map follower count to tier (moved here for reuse)
+export function mapFollowerCountToTier(followers: number): string {
+  if (followers < 1000) return 'early'
+  if (followers < 10000) return 'nano'
+  if (followers < 100000) return 'micro'
+  if (followers < 250000) return 'lower-mid'
+  if (followers < 500000) return 'upper-mid'
+  if (followers < 1000000) return 'macro'
+  if (followers < 5000000) return 'mega'
+  return 'celebrity'
 }
 
 export interface DiscoverCreatorResponse {
@@ -130,10 +241,16 @@ export interface DiscoverCreatorResponse {
 export const discoverCreator = async (
   params: DiscoverCreatorParams
 ): Promise<DiscoverCreatorResponse> => {
-  const actualParams = { ...params, connector: 'instagram', limit: 12, skip: 0, type: 'discovery' } // Default to Instagram for now
+  const actualParams: DiscoverCreatorParams = {
+    ...params,
+    connector: 'instagram' as ConnectorType,
+    limit: 12,
+    skip: 0,
+    type: 'discovery'
+  } // Default to Instagram for now
   log.info('API: discoverCreator called with params:', actualParams)
 
-  if (configs.yltic.isMocked) return mockYlticCreatorDiscovery()
+  if (configs.yltic.isMocked) return mockYlticCreatorDiscovery(actualParams)
   const apiKey = configs.yltic.apiKey
   if (!apiKey) {
     // log.error('API: YLYTIC_API_KEY is not set in environment variables.', {}) // Ensure log.error has a context object if needed by your logger setup

@@ -8,6 +8,7 @@ import configs from '@/configs'
 import { app } from './app'
 import { log } from '@/libs/logger'
 import { testDbConnection } from './libs/db'
+import { logChatStartup } from '@/libs/chat-validation'
 
 const { host, port } = configs
 
@@ -25,4 +26,7 @@ process.on('uncaughtException', (e) => {
 server.listen(port, host, async () => {
   await testDbConnection()
   log.info(`Server is up and running at ${host}:${port}`, { host, port })
+
+  // Validate and log chat API status
+  logChatStartup()
 })
