@@ -20,7 +20,6 @@ export async function addCreatorToCampaign(data: AddCreatorToCampaignReq) {
     SELECT id FROM creator 
     WHERE name = ${creatorData.name} 
     AND platform = ${creatorData.platform}
-    AND email = ${creatorData.email || null}
   `
 
   if (existingCreator.length > 0) {
