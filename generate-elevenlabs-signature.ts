@@ -1,6 +1,8 @@
-require('dotenv').config()
-const crypto = require('crypto')
-const fs = require('fs')
+import dotenv from 'dotenv'
+import crypto from 'crypto'
+import fs from 'fs'
+
+dotenv.config()
 
 if (!process.env.ELEVENLABS_WEBHOOK_SECRET) {
   console.error('Please set ELEVENLABS_WEBHOOK_SECRET in your environment or .env file.')
