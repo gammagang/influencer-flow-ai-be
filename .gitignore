@@ -7,3 +7,6 @@ dist
 
 
 test-output
+
+# Webhook logs
+webhook-logs/

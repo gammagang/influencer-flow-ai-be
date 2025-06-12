@@ -4,17 +4,38 @@ import { validateElevenLabsSignature } from '@/middlewares/elevenlabs-signature'
 import { log } from '@/libs/logger'
 import { sql } from '@/libs/db'
 import { ElevenLabsWebhookSchema, type ElevenLabsWebhook } from './validate'
+import { promises as fs } from 'fs'
+import path from 'path'
+import configs from '@/configs'
 
 const router = Router()
 
 // Webhook endpoint
 router.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
-
   try {
     // Parse the raw body back to JSON for validation
     const bodyStr = req.body.toString()
     const parsedBody = JSON.parse(bodyStr)
+
+    // Store the webhook request body JSON in a file
+    try {
+      if (configs.nodeEnv === 'development') {
+        const webhooksDir = path.join(process.cwd(), 'webhook-logs', 'elevenlabs')
+        await fs.mkdir(webhooksDir, { recursive: true })
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        const conversationId = parsedBody?.data?.conversation_id || 'unknown'
+        const filename = `webhook-${timestamp}-${conversationId}.json`
+        const filepath = path.join(webhooksDir, filename)
+
+        await fs.writeFile(filepath, JSON.stringify(parsedBody, null, 2))
+        log.info('Webhook request body saved to file:', { filepath })
+      }
+    } catch (fileError) {
+      log.error('Failed to save webhook body to file:', fileError)
+      // Continue processing even if file write fails
+    }
 
     // Validate webhook payload
     const validatedData = validateRequest<ElevenLabsWebhook>(
