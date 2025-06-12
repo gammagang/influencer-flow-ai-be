@@ -15,6 +15,13 @@ const elevenLabsRouter = Router()
 elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
   try {
+    const { data, type, event_timestamp } = req.body
+    log.debug('Debug log. Not really used. Need to parse because of raw endpoint', {
+      data,
+      type,
+      event_timestamp
+    })
+
     const parsedBody = JSON.parse(req.body.toString())
 
     // Store the webhook request body JSON in a file

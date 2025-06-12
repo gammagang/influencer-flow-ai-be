@@ -858,6 +858,52 @@
         }
       }
     },
+    "/api/chat/message": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/chat/conversation/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/public/campaign-creator-details/{campaignCreatorMappingId}": {
       "get": {
         "description": "",
@@ -946,13 +992,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "data": {
+                    "example": "any"
+                  },
                   "type": {
                     "example": "any"
                   },
                   "event_timestamp": {
-                    "example": "any"
-                  },
-                  "data": {
                     "example": "any"
                   }
                 }
