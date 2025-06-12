@@ -85,7 +85,7 @@ router.put('/:linkId', async (req: Request, res: Response) => {
   try {
     const updatedLink = await updateCampaignCreatorLink(linkId, {
       status: validatedBody.status,
-      agreedDeliverables: validatedBody.agreedDeliverables,
+      contentDeliverables: validatedBody.contentDeliverables,
       negotiatedRate: validatedBody.negotiatedRate,
       contractId: validatedBody.contractId,
       notes: validatedBody.notes
@@ -163,7 +163,7 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
             ? `${new Date(campaignStartDate).toLocaleDateString()} - ${new Date(campaignEndDate).toLocaleDateString()}`
             : undefined,
         budget: assignedBudget ? `$${assignedBudget}` : undefined,
-        deliverables: campaignCreatorDetails.campaign_creator_meta?.agreedDeliverables || []
+        deliverables: campaignCreatorDetails.campaign_creator_meta?.contentDeliverables || ''
       },
       brandName,
       campaignName,

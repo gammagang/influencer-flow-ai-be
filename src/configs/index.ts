@@ -14,7 +14,10 @@ const configs = () => ({
     apiKey: process.env.YLYTIC_API_KEY || '',
     isMocked: process.env.IS_YLYTIC_MOCKED === 'true' || false
   },
-  elevenLabsWebhookKey: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
+  elevenLabs: {
+    webhookSecret: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
+    bypassSecret: process.env.ELEVENLABS_BYPASS_SECRET || ''
+  },
   resendApiKey: process.env.RESEND_API_KEY || '',
   docusealApiKey: process.env.DOCUSEAL_API_KEY || '',
   negotiationHostUrl: process.env.NEGOTIATION_HOST_URL || 'http://localhost:8080',

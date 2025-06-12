@@ -19,7 +19,7 @@ router.get(
 
     // Get campaign-creator details with joined campaign data from database
     const result = await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
-    console.log(' result:', result)
+    // console.log(' result:', result)
 
     if (!result)
       throw new NotFoundError(

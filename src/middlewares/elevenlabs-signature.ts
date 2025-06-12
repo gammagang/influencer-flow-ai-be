@@ -14,6 +14,12 @@ export const validateElevenLabsSignature = (req: Request, res: Response, next: N
     return res.status(401).json({ error: 'Missing ElevenLabs signature' })
   }
 
+  const bypassSecret = configs.elevenLabs.bypassSecret
+  if (bypassSecret && signatureHeader === bypassSecret) {
+    log.info('Bypassing ElevenLabs signature validation for testing', {})
+    return next()
+  }
+
   try {
     // Parse the signature header - ElevenLabs format: "t=timestamp,v0=signature"
     const headers = signatureHeader.split(',')
@@ -36,7 +42,7 @@ export const validateElevenLabsSignature = (req: Request, res: Response, next: N
     }
 
     // Validate signature
-    const secret = configs.elevenLabsWebhookKey
+    const secret = configs.elevenLabs.webhookSecret
     if (!secret) {
       log.error('ELEVENLABS_WEBHOOK_SECRET not configured', {})
       return res.status(500).json({ error: 'Server configuration error' })
