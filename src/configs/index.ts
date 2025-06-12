@@ -16,7 +16,7 @@ const configs = () => ({
   },
   elevenLabs: {
     webhookSecret: process.env.ELEVENLABS_WEBHOOK_SECRET || '',
-    bypassSecret: process.env.ELEVENLABS_BYPASS_SECRET || 'TEST_WEBHOOK'
+    bypassSecret: process.env.ELEVENLABS_BYPASS_SECRET || ''
   },
   resendApiKey: process.env.RESEND_API_KEY || '',
   docusealApiKey: process.env.DOCUSEAL_API_KEY || '',

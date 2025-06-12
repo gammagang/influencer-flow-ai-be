@@ -15,7 +15,7 @@ export const validateElevenLabsSignature = (req: Request, res: Response, next: N
   }
 
   const bypassSecret = configs.elevenLabs.bypassSecret
-  if (signatureHeader === bypassSecret) {
+  if (bypassSecret && signatureHeader === bypassSecret) {
     log.info('Bypassing ElevenLabs signature validation for testing', {})
     return next()
   }

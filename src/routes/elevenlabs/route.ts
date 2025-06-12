@@ -11,15 +11,13 @@ const elevenLabsRouter = Router()
 // Webhook endpoint for Eleven labs post call
 elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
-
   try {
-    const { type, event_timestamp, data } = req.body
-    const body = { type, event_timestamp, data }
+    const bodyData = JSON.parse(JSON.stringify(req.body.toString()))
 
     // Validate webhook payload
     const validatedData = validateRequest<ElevenLabsWebhook>(
       ElevenLabsWebhookSchema,
-      body,
+      bodyData,
       'ElevenLabs Webhook'
     ) // Process the webhook data
 

@@ -8,15 +8,15 @@ import { creatorsRouter } from './creator/route'
 import { webhooksRouter } from './webhook/route'
 import { emailRouter } from './email'
 
-const router = Router()
+const allRoutes = Router()
 
-router.use('/company', companyRoutes)
-router.use('/campaign', campaignsRouter)
-router.use('/creator', creatorsRouter)
-router.use('/campaign-creator', campaignCreatorRouter)
-router.use('/contracts', contractsRouter)
-router.use('/content', contentRouter)
-router.use('/webhook', webhooksRouter)
-router.use('/email', emailRouter)
+allRoutes.use('/company', companyRoutes)
+allRoutes.use('/campaign', campaignsRouter)
+allRoutes.use('/creator', creatorsRouter)
+allRoutes.use('/campaign-creator', campaignCreatorRouter)
+allRoutes.use('/contracts', contractsRouter)
+allRoutes.use('/content', contentRouter)
+allRoutes.use('/webhook', webhooksRouter)
+allRoutes.use('/email', emailRouter)
 
-export { router as allRoutes }
+export { allRoutes }

@@ -34,7 +34,7 @@ export async function findCompanyByOwner(ownerName: string): Promise<CompanyRow 
     LIMIT 1
   `
 
-  console.log('findCompanyByOwner result:', result)
+  log.debug('findCompanyByOwner result:', result)
 
   return result.length ? (result[0] as CompanyRow) : null
 }
