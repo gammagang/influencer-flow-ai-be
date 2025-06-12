@@ -67,7 +67,7 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
         timeInCall: item.time_in_call_secs
       }))
 
-    log.info('Transcript messages:', { messages }) // Extract required IDs from the webhook data
+    // log.info('Transcript messages:', { messages }) // Extract required IDs from the webhook data
     // These should be passed in the conversation dynamic variables when the call is initiated
     const conversationId = validatedData.data.conversation_id
     const dynamicVars = validatedData.data.conversation_initiation_client_data.dynamic_variables
@@ -157,7 +157,7 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
       })
 
       // If the call was successful, you might want to update the campaign_creator state
-      if (validatedData.data.analysis.call_successful === 'success') {
+      if (campaignCreatorId && validatedData.data.analysis.call_successful === 'success') {
         await updateCampaignCreatorState(campaignCreatorId.toString(), 'call complete')
 
         // TODO: Call Contract creation Flow here

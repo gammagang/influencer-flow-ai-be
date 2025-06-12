@@ -52,6 +52,21 @@ router.get(
         companyId: result.company_id,
         state: result.campaign_state,
         meta: campaignMeta
+      },
+      creator: {
+        id: result.creator_id,
+        name: result.creator_name,
+        platform: result.creator_platform,
+        category: result.creator_category,
+        age: result.creator_age,
+        gender: result.creator_gender,
+        location: result.creator_location,
+        tier: result.creator_tier,
+        engagementRate: result.creator_engagement_rate,
+        email: result.creator_email,
+        phone: result.creator_phone,
+        language: result.creator_language,
+        meta: result.creator_meta || {}
       }
     }
 
