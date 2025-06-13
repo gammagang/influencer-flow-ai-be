@@ -2,7 +2,8 @@ import {
   createCampaign,
   getCampaignsByCompanyId,
   getCreatorsInCampaign,
-  getCampaignById
+  getCampaignById,
+  deleteCampaign
 } from '@/api/campaign'
 import { findCompanyByUserId } from '@/api/company'
 import { BadRequestError } from '@/errors/bad-request-error'
@@ -142,6 +143,38 @@ campaignsRouter.get('/:campaignId/creator', async (req: Request, res: Response) 
   const campaignId = req.params.campaignId
   const creators = await getCreatorsInCampaign(campaignId)
   SuccessResponse.send({ res, data: creators })
+})
+
+// Delete Campaign
+campaignsRouter.delete('/:id', async (req: Request, res: Response) => {
+  const campaignId = req.params.id
+
+  // Get the authenticated user's company
+  const company = await findCompanyByUserId(req.user?.sub || '')
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
+
+  try {
+    const result = await deleteCampaign(campaignId, company.id.toString())
+
+    SuccessResponse.send({
+      res,
+      data: {
+        message: 'Campaign deleted successfully',
+        deletedCampaign: result.deletedCampaign,
+        deletedCreatorsCount: result.deletedCreators.length,
+        deletedCreatorIds: result.deletedCreators
+      }
+    })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    if (errorMessage.includes('not found')) {
+      throw new NotFoundError('Campaign', errorMessage, req.path)
+    }
+    if (errorMessage.includes('Unauthorized')) {
+      throw new ForbiddenError(req.path)
+    }
+    throw error
+  }
 })
 
 export { campaignsRouter }

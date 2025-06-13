@@ -6,14 +6,16 @@ import {
   createCampaignTool,
   listCampaignsTool,
   addCreatorsToCampaignTool,
-  bulkOutreachTool
+  bulkOutreachTool,
+  deleteCampaignTool
 } from './tools'
 import {
   executeDiscoverCreators,
   executeCreateCampaign,
   executeListCampaigns,
   executeAddCreatorsToCampaign,
-  executeBulkOutreach
+  executeBulkOutreach,
+  executeDeleteCampaign
 } from './services'
 import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
@@ -115,7 +117,8 @@ export async function handleChatMessage(
           createCampaignTool,
           listCampaignsTool,
           addCreatorsToCampaignTool,
-          bulkOutreachTool
+          bulkOutreachTool,
+          deleteCampaignTool
         ],
         tool_choice: 'auto',
         temperature: 0.7,
@@ -418,6 +421,52 @@ export async function handleChatMessage(
               JSON.stringify({
                 success: false,
                 error: 'Failed to execute bulk outreach'
+              }),
+              undefined,
+              toolCall.id
+            )
+          }
+        } else if (toolCall.function.name === 'delete_campaign') {
+          try {
+            const params = JSON.parse(toolCall.function.arguments) as {
+              campaignId: string
+              confirmDelete: boolean
+            }
+            log.info('Executing delete_campaign with params:', params)
+
+            const result = await executeDeleteCampaign(params, user)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify(result),
+              undefined,
+              toolCall.id
+            )
+          } catch (error) {
+            log.error('Error executing delete campaign:', error)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result: {
+                success: false,
+                error: 'Failed to delete campaign'
+              }
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify({
+                success: false,
+                error: 'Failed to delete campaign'
               }),
               undefined,
               toolCall.id

@@ -100,3 +100,74 @@ export async function getCampaignById(campaignId: string): Promise<CampaignRow |
 
   return result?.[0] || null
 }
+
+export async function deleteCampaign(
+  campaignId: string,
+  companyId: string
+): Promise<{ deletedCampaign: CampaignRow; deletedCreators: string[] }> {
+  // First verify the campaign exists and belongs to the company
+  const campaign = await getCampaignById(campaignId)
+  if (!campaign) {
+    throw new Error(`Campaign with ID ${campaignId} not found`)
+  }
+
+  if (campaign.company_id.toString() !== companyId.toString()) {
+    throw new Error('Unauthorized: Campaign does not belong to this company')
+  }
+
+  // Get all creators linked to this campaign
+  const campaignCreators = await sql`
+    SELECT creator_id 
+    FROM campaign_creator 
+    WHERE campaign_id = ${campaignId}
+  `
+
+  const creatorIds = campaignCreators.map((cc) => cc.creator_id)
+
+  // Find creators that are ONLY linked to this campaign (and not to other campaigns of the same company)
+  const creatorsToDelete: string[] = []
+
+  for (const creatorId of creatorIds) {
+    const otherCampaignLinks = await sql`
+      SELECT COUNT(*) as count
+      FROM campaign_creator cc
+      JOIN campaign c ON cc.campaign_id = c.id
+      WHERE cc.creator_id = ${creatorId}
+        AND c.company_id = ${companyId}
+        AND cc.campaign_id != ${campaignId}
+    `
+
+    // If creator is not linked to any other campaigns of this company, mark for deletion
+    if (otherCampaignLinks[0].count === 0) {
+      creatorsToDelete.push(creatorId.toString())
+    }
+  }
+
+  // Start transaction to ensure atomicity
+  const result = await sql.begin(async (sql) => {
+    // Delete campaign_creator mappings for this campaign
+    await sql`
+      DELETE FROM campaign_creator 
+      WHERE campaign_id = ${campaignId}
+    `
+
+    // Delete creators that are only linked to this campaign
+    if (creatorsToDelete.length > 0) {
+      await sql`
+        DELETE FROM creator 
+        WHERE id = ANY(${creatorsToDelete})
+      `
+    }
+
+    // Delete the campaign itself
+    const deletedCampaign = await sql<CampaignRow[]>`
+      DELETE FROM campaign 
+      WHERE id = ${campaignId}
+      RETURNING *
+    `
+
+    return { deletedCampaign: deletedCampaign[0], deletedCreators: creatorsToDelete }
+  })
+
+  return result
+}

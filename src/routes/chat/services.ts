@@ -1,5 +1,10 @@
 import { discoverCreator, type DiscoverCreatorParams, mapFollowerCountToTier } from '@/api/discover'
-import { createCampaign, getCampaignsByCompanyId, getCampaignById } from '@/api/campaign'
+import {
+  createCampaign,
+  getCampaignsByCompanyId,
+  getCampaignById,
+  deleteCampaign
+} from '@/api/campaign'
 import { addCreatorToCampaign } from '@/api/creator'
 import { findCompanyByUserId } from '@/api/company'
 import { CreateCampaignReq } from '@/routes/campaign/validate'
@@ -614,6 +619,82 @@ export async function executeBulkOutreach(
     return {
       success: false,
       error: `Failed to execute bulk outreach. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute campaign deletion
+export async function executeDeleteCampaign(
+  params: { campaignId: string; confirmDelete: boolean },
+  user: UserJwt
+) {
+  try {
+    // Validate parameters
+    if (!params.confirmDelete) {
+      return {
+        success: false,
+        error: 'Delete confirmation is required'
+      }
+    }
+
+    if (!params.campaignId) {
+      return {
+        success: false,
+        error: 'Campaign ID is required'
+      }
+    }
+
+    // Get the user's company
+    const company = await findCompanyByUserId(user.sub)
+    if (!company?.id) {
+      return {
+        success: false,
+        error: 'No company found for the user'
+      }
+    }
+
+    // Verify campaign exists and belongs to user's company
+    const campaign = await getCampaignById(params.campaignId)
+    if (!campaign) {
+      return {
+        success: false,
+        error: 'Campaign not found'
+      }
+    }
+
+    if (campaign.company_id.toString() !== company.id.toString()) {
+      return {
+        success: false,
+        error: 'Unauthorized: Campaign does not belong to your company'
+      }
+    }
+
+    // Delete the campaign
+    const result = await deleteCampaign(params.campaignId, company.id.toString())
+
+    log.info(`Successfully deleted campaign ${params.campaignId}`, {
+      campaignName: result.deletedCampaign.name,
+      deletedCreatorsCount: result.deletedCreators.length
+    })
+
+    return {
+      success: true,
+      data: {
+        campaignId: params.campaignId,
+        campaignName: result.deletedCampaign.name,
+        deletedCreatorsCount: result.deletedCreators.length,
+        message: `Campaign "${result.deletedCampaign.name}" has been successfully deleted${
+          result.deletedCreators.length > 0
+            ? ` along with ${result.deletedCreators.length} creator(s) that were only linked to this campaign.`
+            : '.'
+        }`
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeDeleteCampaign:', error)
+    return {
+      success: false,
+      error: `Failed to delete campaign. ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

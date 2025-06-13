@@ -177,3 +177,28 @@ export const bulkOutreachTool = {
     }
   }
 }
+
+// Function calling tool definition for deleting campaigns
+export const deleteCampaignTool = {
+  type: 'function' as const,
+  function: {
+    name: 'delete_campaign',
+    description:
+      'Delete a campaign permanently. This will also remove all creators linked ONLY to this campaign. Creators linked to other campaigns will remain.',
+    parameters: {
+      type: 'object',
+      properties: {
+        campaignId: {
+          type: 'string',
+          description: 'The ID of the campaign to delete (required)'
+        },
+        confirmDelete: {
+          type: 'boolean',
+          description:
+            'Confirmation that the user wants to permanently delete the campaign (required, must be true)'
+        }
+      },
+      required: ['campaignId', 'confirmDelete']
+    }
+  }
+}
