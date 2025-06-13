@@ -3,7 +3,7 @@ import { log } from '@/libs/logger'
 import { SuccessResponse } from '@/libs/success-response'
 import { ChatRequestSchema } from './types'
 import { handleChatMessage } from './chat-handler'
-import { conversationStore } from './conversation-store'
+import { persistentConversationStore as conversationStore } from './conversation-store'
 
 const chatRouter = Router()
 
@@ -34,7 +34,9 @@ chatRouter.get('/conversation/:id', async (req: Request, res: Response) => {
   const { id } = req.params
 
   try {
+    log.info('Getting conversation history for:', id)
     const messages = conversationStore.getMessages(id)
+    log.info('Found messages:', messages.length)
 
     SuccessResponse.send({
       res,
@@ -43,7 +45,9 @@ chatRouter.get('/conversation/:id', async (req: Request, res: Response) => {
         messages: messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
-          timestamp: msg.timestamp
+          timestamp: msg.timestamp,
+          tool_call_id: msg.tool_call_id, // Include tool_call_id for tool messages
+          tool_calls: msg.tool_calls // Include tool_calls for assistant messages
         })),
         total: messages.length
       }
@@ -73,6 +77,37 @@ chatRouter.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     log.error('Error getting conversation stats:', error)
     throw new Error('Failed to get conversation stats')
+  }
+})
+
+// Delete/clear a conversation
+chatRouter.delete('/conversation/:id', async (req: Request, res: Response) => {
+  const { id } = req.params
+
+  try {
+    log.info('Deleting conversation:', id)
+    const deleted = conversationStore.deleteConversation(id)
+
+    if (deleted) {
+      SuccessResponse.send({
+        res,
+        data: {
+          message: 'Conversation deleted successfully',
+          conversationId: id
+        }
+      })
+    } else {
+      SuccessResponse.send({
+        res,
+        data: {
+          message: 'Conversation not found',
+          conversationId: id
+        }
+      })
+    }
+  } catch (error) {
+    log.error('Error deleting conversation:', error)
+    throw new Error('Failed to delete conversation')
   }
 })
 

@@ -1,10 +1,12 @@
 import { discoverCreator, type DiscoverCreatorParams, mapFollowerCountToTier } from '@/api/discover'
-import { createCampaign, getCampaignsByCompanyId } from '@/api/campaign'
+import { createCampaign, getCampaignsByCompanyId, getCampaignById } from '@/api/campaign'
+import { addCreatorToCampaign } from '@/api/creator'
 import { findCompanyByUserId } from '@/api/company'
 import { CreateCampaignReq } from '@/routes/campaign/validate'
 import { log } from '@/libs/logger'
 import { type CreateCampaignChatParams } from './types'
 import { type UserJwt } from '@/middlewares/jwt'
+import { persistentConversationStore } from './conversation-store'
 
 interface CampaignResult {
   id: number
@@ -232,6 +234,174 @@ export async function executeListCampaigns(user: UserJwt) {
     return {
       success: false,
       error: `Failed to list campaigns. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute adding creators to campaign
+export async function executeAddCreatorsToCampaign(
+  params: {
+    campaignId: string
+    creatorHandles: string[]
+    assignedBudget?: number
+    notes?: string
+  },
+  user: UserJwt,
+  conversationId: string
+) {
+  try {
+    log.info('Adding creators to campaign:', params)
+
+    // Verify user has access to the campaign
+    const company = await findCompanyByUserId(user.sub)
+    if (!company) {
+      return {
+        success: false,
+        error: 'Company not found for user'
+      }
+    }
+
+    // Get campaign to verify it exists and belongs to user's company
+    const campaign = await getCampaignById(params.campaignId)
+    if (!campaign) {
+      return {
+        success: false,
+        error: 'Campaign not found'
+      }
+    }
+
+    if (campaign.company_id !== company.id.toString()) {
+      return {
+        success: false,
+        error: 'You do not have access to this campaign'
+      }
+    }
+
+    // Get conversation history to find discovered creators
+    const conversation = persistentConversationStore.getConversation(conversationId)
+    if (!conversation) {
+      return {
+        success: false,
+        error: 'Conversation not found. Please discover creators first.'
+      }
+    }
+
+    // Find the most recent discover_creators result in conversation
+    const messages = persistentConversationStore.getMessages(conversationId)
+    let discoveredCreators: Array<{
+      id: string
+      name: string
+      handle: string
+      platform: string
+      category: string
+      followersCount: number
+      tier: string
+      engagement_rate: number
+      location: string | null
+      gender: string | null
+      language: string | null
+      profileUrl: string
+    }> = []
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i]
+      if (message.role === 'tool' && message.tool_call_id) {
+        try {
+          const toolResult = JSON.parse(message.content)
+          if (toolResult.success && toolResult.data?.creators) {
+            discoveredCreators = toolResult.data.creators
+            break
+          }
+        } catch {
+          // Continue searching
+        }
+      }
+    }
+
+    if (discoveredCreators.length === 0) {
+      return {
+        success: false,
+        error: 'No discovered creators found in conversation. Please discover creators first.'
+      }
+    }
+
+    const addedCreators = []
+    const errors = []
+
+    // Find creators by handle and add them to campaign
+    for (const handle of params.creatorHandles) {
+      try {
+        const discoveredCreator = discoveredCreators.find(
+          (creator) => creator.handle === handle || creator.name === handle
+        )
+
+        if (!discoveredCreator) {
+          errors.push(`Creator with handle ${handle} not found in discovered creators`)
+          continue
+        }
+
+        // Prepare creator data for the addCreatorToCampaign function
+        const creatorData = {
+          name: discoveredCreator.name,
+          platform: 'instagram' as const, // All discovered creators are from Instagram
+          email: null,
+          age: null,
+          gender: discoveredCreator.gender || null,
+          location: discoveredCreator.location,
+          tier: discoveredCreator.tier,
+          engagement_rate: discoveredCreator.engagement_rate,
+          phone: null,
+          language: discoveredCreator.language || null,
+          category: discoveredCreator.category,
+          meta: {
+            externalId: discoveredCreator.id,
+            handle: discoveredCreator.handle,
+            profileUrl: discoveredCreator.profileUrl,
+            followersCount: discoveredCreator.followersCount,
+            source: 'discovery'
+          }
+        }
+
+        // Use the existing addCreatorToCampaign function
+        const result = await addCreatorToCampaign({
+          campaignId: params.campaignId,
+          creatorData,
+          assignedBudget: params.assignedBudget || 1000,
+          notes: params.notes || `Added via chat on ${new Date().toISOString()}`
+        })
+
+        addedCreators.push({
+          creatorHandle: handle,
+          creatorName: discoveredCreator.name,
+          campaignCreatorId: result.id,
+          status: result.current_state,
+          assignedBudget: result.assigned_budget
+        })
+
+        log.info(`Successfully added creator ${handle} to campaign ${params.campaignId}`)
+      } catch (error) {
+        log.error(`Error adding creator ${handle} to campaign:`, error)
+        errors.push(
+          `Failed to add creator ${handle}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        )
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        campaignId: params.campaignId,
+        campaignName: campaign.name,
+        addedCreators,
+        totalAdded: addedCreators.length,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeAddCreatorsToCampaign:', error)
+    return {
+      success: false,
+      error: `Failed to add creators to campaign. ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

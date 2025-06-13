@@ -57,6 +57,29 @@ export interface ToolCallResult {
         status: string
         createdAt: string
       }
+      campaigns?: Array<{
+        id: string
+        name: string
+        description: string | null
+        startDate: string
+        endDate: string
+        status: string
+        createdAt: string
+        deliverables: string[]
+        totalBudget: string | null
+      }>
+      // For add creators to campaign
+      campaignId?: string
+      campaignName?: string
+      addedCreators?: Array<{
+        creatorHandle: string
+        creatorName: string
+        campaignCreatorId: string
+        status: string
+        assignedBudget: number
+      }>
+      totalAdded?: number
+      errors?: string[]
     }
     error?: string
   }

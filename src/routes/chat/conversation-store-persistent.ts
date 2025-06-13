@@ -1,6 +1,6 @@
-import { log } from '@/libs/logger'
 import fs from 'fs'
 import path from 'path'
+import { log } from '@/libs/logger'
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -207,7 +207,7 @@ class PersistentConversationStore {
       sortedConversations.length - this.MAX_CONVERSATIONS
     )
 
-    toRemove.forEach(([id]) => {
+    toRemove.forEach(([id, conversation]) => {
       this.conversations.delete(id)
       // Delete the file as well
       try {
@@ -220,6 +220,7 @@ class PersistentConversationStore {
       }
     })
   }
+
   // Helper method to get conversation stats (for debugging)
   getStats() {
     return {
@@ -229,31 +230,6 @@ class PersistentConversationStore {
         messageCount: conv.messages.length,
         lastUpdated: conv.updatedAt
       }))
-    }
-  }
-
-  // Delete a specific conversation
-  deleteConversation(conversationId: string): boolean {
-    const conversation = this.conversations.get(conversationId)
-
-    if (!conversation) {
-      return false
-    }
-
-    // Remove from memory
-    this.conversations.delete(conversationId)
-
-    // Delete the file
-    try {
-      const filePath = this.getConversationFilePath(conversationId)
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
-        log.info(`Deleted conversation file: ${conversationId}`)
-      }
-      return true
-    } catch (error) {
-      log.error(`Error deleting conversation file ${conversationId}:`, error)
-      return false
     }
   }
 }

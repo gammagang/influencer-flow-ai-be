@@ -104,3 +104,37 @@ export const listCampaignsTool = {
     }
   }
 }
+
+// Function calling tool definition for adding creators to campaign
+export const addCreatorsToCampaignTool = {
+  type: 'function' as const,
+  function: {
+    name: 'add_creators_to_campaign',
+    description:
+      'Add discovered creators to a specific campaign. This should only be used after creators have been discovered using the discover_creators tool in the current conversation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        campaignId: {
+          type: 'string',
+          description: 'The ID of the campaign to add creators to (required)'
+        },
+        creatorHandles: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Array of creator handles/usernames to add to the campaign (required). Use handles from previously discovered creators.'
+        },
+        assignedBudget: {
+          type: 'number',
+          description: 'Budget assigned to each creator (optional, defaults to 1000)'
+        },
+        notes: {
+          type: 'string',
+          description: 'Additional notes about adding these creators (optional)'
+        }
+      },
+      required: ['campaignId', 'creatorHandles']
+    }
+  }
+}

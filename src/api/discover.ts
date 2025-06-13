@@ -208,8 +208,13 @@ function mockYlticCreatorDiscovery(params: DiscoverCreatorParams): DiscoverCreat
     })
   }
 
+  // Apply pagination (skip and limit)
+  const skip = params.skip || 0
+  const limit = params.limit || 12
+  const paginatedCreators = filteredCreators.slice(skip, skip + limit)
+
   return {
-    objects: filteredCreators
+    objects: paginatedCreators
   }
 }
 
@@ -244,8 +249,8 @@ export const discoverCreator = async (
   const actualParams: DiscoverCreatorParams = {
     ...params,
     connector: 'instagram' as ConnectorType,
-    limit: 12,
-    skip: 0,
+    limit: params.limit || 12,
+    skip: params.skip || 0,
     type: 'discovery'
   } // Default to Instagram for now
   log.info('API: discoverCreator called with params:', actualParams)
