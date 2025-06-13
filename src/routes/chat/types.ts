@@ -89,4 +89,5 @@ export interface ChatResponse {
   message: string
   toolCalls: ToolCallResult[]
   conversationId: string
+  isError?: boolean
 }

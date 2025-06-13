@@ -19,6 +19,7 @@ import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
 import { persistentConversationStore as conversationStore } from './conversation-store'
 import { type UserJwt } from '@/middlewares/jwt'
+import configs from '@/configs'
 
 // Utility function to safely convert and validate numeric parameters
 function validateAndCoerceNumericParam(
@@ -107,7 +108,7 @@ export async function handleChatMessage(
     let completion
     try {
       completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: configs.groqModel,
         messages,
         tools: [
           discoverCreatorsTool,
@@ -128,9 +129,22 @@ export async function handleChatMessage(
           message:
             "I apologize, but I've reached my daily API limit. Please try again in a few minutes or contact support to upgrade the service tier.",
           toolCalls: [],
-          conversationId: currentConversationId
+          conversationId: currentConversationId,
+          isError: true
         }
       }
+
+      // Handle other API errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        log.error('Groq API error:', error)
+        return {
+          message: "I'm experiencing some technical difficulties. Please try again in a moment.",
+          toolCalls: [],
+          conversationId: currentConversationId,
+          isError: true
+        }
+      }
+
       // Re-throw other errors
       throw error
     }
@@ -445,7 +459,7 @@ export async function handleChatMessage(
 
       // Get final response from Groq
       const finalCompletion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: configs.groqModel,
         messages: followUpMessages,
         temperature: 0.7,
         max_tokens: 1024

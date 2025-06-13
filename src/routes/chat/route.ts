@@ -25,6 +25,29 @@ chatRouter.post('/message', async (req: Request, res: Response) => {
     })
   } catch (error) {
     log.error('Error in chat endpoint:', error)
+
+    // Check if this is an API error with a user-friendly message
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string' &&
+      (error.message.includes('daily API limit') ||
+        error.message.includes('technical difficulties'))
+    ) {
+      // This is likely our handled API error - return it as data
+      SuccessResponse.send({
+        res,
+        data: {
+          message: error.message,
+          toolCalls: [],
+          conversationId: req.body.conversationId || null,
+          isError: true
+        }
+      })
+      return
+    }
+
     throw new Error('Failed to process chat message')
   }
 })
