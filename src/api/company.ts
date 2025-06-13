@@ -90,7 +90,7 @@ export async function createCompany(input: CreateCompanyInput) {
       ${input.owner},
       ${input.description},
       ${input.user_id},
-      ${JSON.stringify(input.meta || {})}::jsonb
+      ${sql.json(input.meta || {})}::jsonb
     )
     RETURNING *
   `

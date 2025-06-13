@@ -33,12 +33,11 @@ router.get(
     const campaignMeta = result.campaign_meta || {} // Structure the response with campaignCreator and campaign objects
     const detailedResponse = {
       campaignCreator: {
-        id: result.id,
+        id: result.cc_id,
         campaignId: result.campaign_id,
         creatorId: result.creator_id,
-        lastStateChangeAt: result.last_state_change_at,
+        // lastStateChangeAt: result.last_state_change_at,
         assignedBudget: result.assigned_budget,
-        notes: result.notes,
         contentDeliverables: campaignCreatorMeta.contentDeliverables || [],
         contractId: campaignCreatorMeta.contractId || null,
         currentState: result.campaign_creator_current_state

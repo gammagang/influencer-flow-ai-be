@@ -1,5 +1,5 @@
 import {
-  createCampaignCreatorLink,
+  mapCreatorToCampaign,
   deleteCampaignCreatorLink,
   getCampaignCreatorWithCampaignDetails,
   getCampaignCreators,
@@ -22,13 +22,14 @@ import {
   UpdateCampaignCreatorLinkSchema
 } from './validate'
 import configs from '@/configs'
+import { sendContractViaEmail } from '@/libs/docuseal'
 
 const router = Router()
 
 router.post('/', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
 
-  const newLink = await createCampaignCreatorLink({
+  const newLink = await mapCreatorToCampaign({
     campaignId: validatedBody.campaignId,
     creatorId: validatedBody.creatorId,
     status: validatedBody.status || 'pending',
@@ -58,16 +59,16 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:campaignCreatorMappingId', async (req: Request, res: Response) => {
-  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
+router.get('/:ccMappingId', async (req: Request, res: Response) => {
+  const ccMappingId = req.params.ccMappingId
 
   try {
-    const link = await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+    const link = await getCampaignCreatorWithCampaignDetails(ccMappingId)
 
     if (!link) {
       throw new NotFoundError(
         'Campaign-Creator link not found',
-        `campaignCreatorMappingId: ${campaignCreatorMappingId} not found`,
+        `ccMappingId: ${ccMappingId} not found`,
         req.path
       )
     }
@@ -118,19 +119,18 @@ router.delete('/:linkId', async (req: Request, res: Response) => {
 })
 
 // Generate (Preview) outreach email content (without sending)
-router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, res: Response) => {
-  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
+router.get('/:ccMappingId/outreach/preview', async (req: Request, res: Response) => {
+  const ccMappingId = req.params.ccMappingId
   const validatedQuery = validateRequest(PreviewOutreachEmailSchema, req.query, req.path)
 
   try {
     // Get detailed campaign-creator information
-    const campaignCreatorDetails =
-      await getCampaignCreatorWithCampaignDetails(campaignCreatorMappingId)
+    const campaignCreatorDetails = await getCampaignCreatorWithCampaignDetails(ccMappingId)
 
     if (!campaignCreatorDetails) {
       throw new NotFoundError(
         'Campaign-Creator link not found',
-        `Link with ID ${campaignCreatorMappingId} not found`,
+        `Link with ID ${ccMappingId} not found`,
         req.path
       )
     } // Extract data for email
@@ -168,8 +168,8 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
       brandName,
       campaignName,
       personalizedMessage: validatedQuery.personalizedMessage,
-      negotiationLink: `${configs.negotiationHostUrl}/agent-call?id=${campaignCreatorMappingId}`,
-      campaignCreatorMappingId
+      negotiationLink: `${configs.negotiationHostUrl}/agent-call?id=${ccMappingId}`,
+      ccMappingId
     }
 
     // Generate email content using AI
@@ -189,9 +189,9 @@ router.get('/:campaignCreatorMappingId/outreach/preview', async (req: Request, r
 })
 
 // Send outreach email to creator
-router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res: Response) => {
+router.post('/:ccMappingId/outreach/send', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(SendOutreachEmailSchema, req.body, req.path)
-  const campaignCreatorMappingId = req.params.campaignCreatorMappingId
+  const ccMappingId = req.params.ccMappingId
   try {
     // Send the email content from frontend
     const emailResult = await sendOutreachEmailProgrammatic({
@@ -202,7 +202,7 @@ router.post('/:campaignCreatorMappingId/outreach/send', async (req: Request, res
     })
 
     if (!emailResult.success) throw new Error(emailResult.error || 'Failed to send outreach email')
-    const campaign = await updateCampaignCreatorState(campaignCreatorMappingId, 'outreached')
+    const campaign = await updateCampaignCreatorState(ccMappingId, 'outreached')
 
     SuccessResponse.send({
       res,
@@ -237,7 +237,7 @@ router.post('/:linkId/payments', async (req: Request, res: Response) => {
 
     // For MVP, we'll store payment info in the campaign_creator meta field
     // In a production system, this would go to a dedicated payments table
-    const currentMeta = link.meta || {}
+    const currentMeta = link.campaign_creator_meta || {}
     const payments = currentMeta.payments || []
 
     const newPayment = {
@@ -260,5 +260,131 @@ router.post('/:linkId/payments', async (req: Request, res: Response) => {
 })
 
 // TODO: Add GET, PUT, DELETE for /campaign-creator/:linkId/payments/:paymentId if needed
+
+// API To read ccMappingId and make a docuseal send contract
+router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) => {
+  const ccMappingId = req.params.ccMappingId
+  try {
+    // Get campaign-creator mapping with all details
+    const mapping = await getCampaignCreatorWithCampaignDetails(ccMappingId)
+    if (!mapping) {
+      throw new NotFoundError(
+        'Campaign-Creator mapping not found',
+        `Mapping with ID ${ccMappingId} not found`,
+        req.path
+      )
+    }
+
+    // Get company details for brand information
+    const company = await getCompanyById(mapping.company_id)
+    if (!company)
+      throw new NotFoundError(
+        'Company not found',
+        `Company with ID ${mapping.company_id} not found`,
+        req.path
+      )
+
+    // Parse meta fields (safely handle string or object formats)
+    const parsedCompanyMeta = (() => {
+      try {
+        if (typeof company.meta === 'string' && company.meta) {
+          return JSON.parse(company.meta)
+        }
+        return company.meta || {}
+      } catch (e) {
+        console.error('Error parsing company meta:', e)
+        return {}
+      }
+    })()
+
+    const campaignCreatorMeta = (() => {
+      try {
+        if (typeof mapping.campaign_creator_meta === 'string' && mapping.campaign_creator_meta) {
+          return JSON.parse(mapping.campaign_creator_meta)
+        }
+        return mapping.campaign_creator_meta || {}
+      } catch (e) {
+        console.error('Error parsing campaign_creator_meta:', e)
+        return {}
+      }
+    })()
+
+    const creatorMeta = (() => {
+      try {
+        if (typeof mapping.creator_meta === 'string' && mapping.creator_meta) {
+          return JSON.parse(mapping.creator_meta)
+        }
+        return mapping.creator_meta || {}
+      } catch (e) {
+        console.error('Error parsing creator_meta:', e)
+        return {}
+      }
+    })()
+
+    // Helper function to format date in YYYY-MM-DD format
+    const formatDate = (date: string | null) => {
+      if (!date) return new Date().toISOString().split('T')[0]
+
+      try {
+        return new Date(date).toISOString().split('T')[0]
+      } catch (e) {
+        console.error('Error formatting date:', e)
+        return new Date().toISOString().split('T')[0]
+      }
+    }
+
+    // Get the creator's handle based on their platform
+    const getCreatorHandle = () => {
+      if (mapping.creator_platform === 'instagram') {
+        return creatorMeta.instagram_handle || mapping.creator_name
+      }
+      if (mapping.creator_platform === 'youtube') {
+        return creatorMeta.youtube_handle || mapping.creator_name
+      }
+      if (mapping.creator_platform === 'tiktok') {
+        return creatorMeta.tiktok_handle || mapping.creator_name
+      }
+      return mapping.creator_name
+    }
+
+    // Create contract data object with proper null/undefined handling
+    const contractData = {
+      campaign: {
+        name: mapping.campaign_name || 'Untitled Campaign',
+        startDate: formatDate(mapping.campaign_start_date),
+        endDate: formatDate(mapping.campaign_end_date)
+      },
+      brand: {
+        name: company.name || 'Your Brand',
+        contactPerson:
+          parsedCompanyMeta.contact_name || company.owner_name || 'Brand Representative',
+        email: parsedCompanyMeta.contact_email || company.owner_name || 'contact@example.com'
+      },
+      creator: {
+        name: mapping.creator_name || 'Creator',
+        instaHandle: getCreatorHandle(),
+        email: mapping.creator_email || creatorMeta.email || 'creator@example.com'
+      },
+      deliverables:
+        campaignCreatorMeta.contentDeliverables || 'Content deliverables to be determined',
+      compensation: {
+        currency: 'INR',
+        amount: mapping.assigned_budget || 0,
+        paymentMethod: 'Bank Transfer'
+      }
+    }
+
+    // Send the contract via DocuSeal
+    const submission = await sendContractViaEmail(contractData)
+
+    // Update mapping to record that contract was sent
+    await updateCampaignCreatorState(ccMappingId, 'waiting for signature')
+
+    SuccessResponse.send({ res, data: submission })
+  } catch (error: any) {
+    console.error('Contract generation error:', error)
+    throw new Error(error.message || 'Failed to send contract via DocuSeal')
+  }
+})
 
 export { router as campaignCreatorRouter }

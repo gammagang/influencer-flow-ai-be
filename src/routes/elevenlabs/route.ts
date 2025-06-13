@@ -162,11 +162,13 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
 
         // TODO: Call Contract creation Flow here
         // Contract created -> Update db -? Should be visible on Console for Brand to sign. Then Creator is sent the email.
-        // TODO: Trigger follow-up actions like sending contracts
         log.info('Call was successful - consider triggering follow-up actions', {
           negotiationAttemptId,
           campaignCreatorId
         })
+
+        // TODO: Trigger follow-up actions like sending contracts
+        // Create Contract flow
       }
 
       return res.status(200).json({

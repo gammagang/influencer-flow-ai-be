@@ -432,12 +432,12 @@
         }
       }
     },
-    "/api/campaign-creator/{campaignCreatorMappingId}": {
+    "/api/campaign-creator/{ccMappingId}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "campaignCreatorMappingId",
+            "name": "ccMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -511,12 +511,12 @@
         }
       }
     },
-    "/api/campaign-creator/{campaignCreatorMappingId}/outreach/preview": {
+    "/api/campaign-creator/{ccMappingId}/outreach/preview": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "campaignCreatorMappingId",
+            "name": "ccMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -538,12 +538,12 @@
         }
       }
     },
-    "/api/campaign-creator/{campaignCreatorMappingId}/outreach/send": {
+    "/api/campaign-creator/{ccMappingId}/outreach/send": {
       "post": {
         "description": "",
         "parameters": [
           {
-            "name": "campaignCreatorMappingId",
+            "name": "ccMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -571,6 +571,33 @@
         "parameters": [
           {
             "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/campaign-creator/{ccMappingId}/send-contract": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "ccMappingId",
             "in": "path",
             "required": true,
             "schema": {
@@ -889,6 +916,50 @@
               "type": "string"
             }
           },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/chat/stats": {
+      "get": {
+        "description": "",
+        "parameters": [
           {
             "name": "authorization",
             "in": "header",

@@ -4,11 +4,44 @@ import { UpdateCampaignCreatorLinkReq } from '@/routes/campaign-creator/validate
 
 // This will contain the db calls for campaign-creator operations
 
-/**
- * Get detailed campaign-creator information with joined campaign and creator data.
- */
-export async function getCampaignCreatorWithCampaignDetails(linkId: string) {
-  const result = await sql`
+export interface CampaignCreatorDetails {
+  // Campaign-Creator mapping fields
+  cc_id: string
+  campaign_creator_current_state: string
+  assigned_budget: number | null
+  cc_notes: string | null
+  campaign_creator_meta: Record<string, any>
+
+  // Campaign fields
+  campaign_id: string
+  company_id: string
+  campaign_name: string
+  campaign_description: string | null
+  campaign_start_date: string | null
+  campaign_end_date: string | null
+  campaign_state: string
+  campaign_meta: Record<string, any>
+
+  // Creator fields
+  creator_id: string
+  creator_name: string
+  creator_platform: string
+  creator_category: string | null
+  creator_age: number | null
+  creator_gender: string | null
+  creator_location: string | null
+  creator_tier: string | null
+  creator_engagement_rate: number | null
+  creator_email: string | null
+  creator_phone: string | null
+  creator_language: string | null
+  creator_meta: Record<string, any>
+}
+
+export async function getCampaignCreatorWithCampaignDetails(
+  ccMappingId: string
+): Promise<CampaignCreatorDetails | null> {
+  const result = await sql<CampaignCreatorDetails[]>`
     SELECT 
       cc.id as cc_id,
       cc.current_state as campaign_creator_current_state,
@@ -41,19 +74,8 @@ export async function getCampaignCreatorWithCampaignDetails(linkId: string) {
     FROM campaign_creator cc
     JOIN campaign c ON cc.campaign_id = c.id
     JOIN creator cr ON cc.creator_id = cr.id
-    WHERE cc.id = ${linkId}
+    WHERE cc.id = ${ccMappingId}
   `
-  return result[0] || null
-}
-
-/**
- * Get campaign-creator by ID
- */
-export async function getCampaignCreatorMappingDetails(campaignCreatorMappingId: string) {
-  const result = await sql`
-    SELECT * FROM campaign_creator WHERE id = ${campaignCreatorMappingId}
-  `
-
   return result[0] || null
 }
 
@@ -112,7 +134,7 @@ export async function getCampaignCreators(filters: {
 /**
  * Create a new campaign-creator link
  */
-export async function createCampaignCreatorLink(data: {
+export async function mapCreatorToCampaign(data: {
   campaignId: string
   creatorId: string
   status?: string
@@ -176,7 +198,7 @@ export async function updateCampaignCreatorLink(
   const currentLink = await getCampaignCreatorWithCampaignDetails(linkId)
   if (!currentLink) throw new Error('Campaign-creator link not found')
 
-  const updatedMeta = currentLink.meta || {}
+  const updatedMeta = currentLink.campaign_creator_meta || {}
   if (contentDeliverables) updatedMeta.contentDeliverables = contentDeliverables
   if (contractId) updatedMeta.contractId = contentDeliverables
 

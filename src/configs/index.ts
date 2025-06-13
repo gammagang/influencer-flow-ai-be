@@ -20,7 +20,12 @@ const configs = () => ({
     bypassSecret: process.env.ELEVENLABS_BYPASS_SECRET || ''
   },
   resendApiKey: process.env.RESEND_API_KEY || '',
-  docusealApiKey: process.env.DOCUSEAL_API_KEY || '',
+  docuseal: {
+    apiKey: process.env.DOCUSEAL_API_KEY || '',
+    templateId: process.env.DOCUSEAL_TEMPLATE_ID || '1',
+    url: process.env.DOCUSEAL_URL || 'http://localhost:5000'
+  },
+
   negotiationHostUrl: process.env.NEGOTIATION_HOST_URL || 'http://localhost:8080',
   db: {
     databaseUrl: process.env.DATABASE_URL || ''
