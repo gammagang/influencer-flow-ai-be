@@ -7,6 +7,13 @@ import { log } from '@/libs/logger'
 import { type CreateCampaignChatParams } from './types'
 import { type UserJwt } from '@/middlewares/jwt'
 import { persistentConversationStore } from './conversation-store'
+import {
+  getCampaignCreators,
+  getCampaignCreatorWithCampaignDetails,
+  updateCampaignCreatorState
+} from '@/api/campaign-creator'
+import { generateUserOutreachEmail } from '@/api/outreach-email'
+import { sendOutreachEmailProgrammatic } from '@/api/email'
 
 interface CampaignResult {
   id: number
@@ -402,6 +409,211 @@ export async function executeAddCreatorsToCampaign(
     return {
       success: false,
       error: `Failed to add creators to campaign. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute bulk outreach emails
+export async function executeBulkOutreach(
+  params: {
+    campaignId: string
+    creatorIds?: string[] // Optional: specific creator IDs, if not provided, send to all eligible creators
+    personalizedMessage?: string
+    confirmTemplate?: boolean // Whether to show template confirmation first (defaults to true for safety)
+  },
+  _user: UserJwt,
+  _conversationId: string
+) {
+  try {
+    // Default to showing template confirmation for safety
+    const shouldConfirmTemplate = params.confirmTemplate !== false
+    // Validate campaign exists and get details
+    const campaign = await getCampaignById(params.campaignId)
+    if (!campaign) {
+      return {
+        success: false,
+        error: `Campaign with ID ${params.campaignId} not found`
+      }
+    }
+
+    // Get all campaign-creator links for this campaign
+    const campaignCreatorLinks = await getCampaignCreators({
+      campaignId: params.campaignId,
+      limit: 100
+    })
+
+    if (!campaignCreatorLinks.items || campaignCreatorLinks.items.length === 0) {
+      return {
+        success: false,
+        error: 'No creators found in this campaign'
+      }
+    }
+
+    // Filter creators based on:
+    // 1. Specific creator IDs if provided
+    // 2. Current state (exclude already contacted creators)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const eligibleCreators = campaignCreatorLinks.items.filter((link: Record<string, any>) => {
+      // Check if creator is in specific list (if provided)
+      if (params.creatorIds && params.creatorIds.length > 0) {
+        if (!params.creatorIds.includes(link.id.toString())) {
+          return false
+        }
+      }
+
+      // Exclude creators who have already been contacted
+      const excludedStates = [
+        'outreached',
+        'call_initiated',
+        'negotiating',
+        'deal_finalized',
+        'contract_sent',
+        'contract_signed',
+        'content_delivered',
+        'payment_processed'
+      ]
+      return !excludedStates.includes(link.current_state)
+    })
+
+    if (eligibleCreators.length === 0) {
+      return {
+        success: false,
+        error:
+          'No eligible creators found. All creators in this campaign have already been contacted or are in advanced stages.'
+      }
+    }
+
+    // If confirmTemplate is true, generate preview for first creator and return for confirmation
+    if (shouldConfirmTemplate) {
+      const firstCreator = eligibleCreators[0]
+      const creatorDetails = await getCampaignCreatorWithCampaignDetails(firstCreator.id.toString())
+
+      if (!creatorDetails) {
+        return {
+          success: false,
+          error: 'Failed to get creator details for template preview'
+        }
+      }
+
+      // Generate sample email template
+      const emailData = {
+        subject: `Partnership Opportunity with ${campaign.name}`,
+        recipient: {
+          name: creatorDetails.creator_name,
+          email: 'sample@example.com'
+        },
+        campaignDetails: creatorDetails.campaign_description || campaign.description || '',
+        brandName: 'Your Brand', // TODO: Get from company details
+        campaignName: campaign.name,
+        personalizedMessage: params.personalizedMessage || '',
+        negotiationLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${firstCreator.id}`
+      }
+
+      const sampleEmail = await generateUserOutreachEmail(emailData)
+
+      return {
+        success: true,
+        data: {
+          templatePreview: true,
+          campaignName: campaign.name,
+          eligibleCreatorsCount: eligibleCreators.length,
+          sampleEmail,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          eligibleCreators: eligibleCreators.map((creator: any) => ({
+            id: creator.id,
+            name: creator.creator?.name || 'Unknown',
+            handle: creator.creator?.meta?.handle || 'Unknown',
+            currentState: creator.current_state
+          }))
+        }
+      }
+    }
+
+    // Execute bulk outreach
+    const results = []
+    const errors = []
+
+    for (const creatorLink of eligibleCreators) {
+      try {
+        // Get detailed creator information
+        const creatorDetails = await getCampaignCreatorWithCampaignDetails(
+          creatorLink.id.toString()
+        )
+
+        if (!creatorDetails) {
+          errors.push(
+            `Failed to get details for creator ${creatorLink.creator?.name || creatorLink.id}`
+          )
+          continue
+        }
+
+        // Prepare email data
+        const emailData = {
+          subject: `Partnership Opportunity with ${campaign.name}`,
+          recipient: {
+            name: creatorDetails.creator_name,
+            email: creatorDetails.creator_email || 'gammagang100x@gmail.com' // Fallback email
+          },
+          campaignDetails: creatorDetails.campaign_description || campaign.description || '',
+          brandName: 'Your Brand', // TODO: Get from company details
+          campaignName: campaign.name,
+          personalizedMessage: params.personalizedMessage || '',
+          negotiationLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${creatorLink.id}`
+        }
+
+        // Generate personalized email using AI
+        const generatedEmail = await generateUserOutreachEmail(emailData)
+
+        // Send the email
+        const emailResult = await sendOutreachEmailProgrammatic({
+          to: emailData.recipient.email,
+          subject: generatedEmail.subject,
+          text: generatedEmail.body,
+          html: generatedEmail.body.replace(/\n/g, '<br>')
+        })
+
+        if (emailResult.success) {
+          // Update creator state to 'outreached'
+          await updateCampaignCreatorState(creatorLink.id.toString(), 'outreached')
+
+          results.push({
+            creatorId: creatorLink.id,
+            creatorName: creatorDetails.creator_name,
+            creatorEmail: emailData.recipient.email,
+            status: 'sent',
+            emailSubject: generatedEmail.subject
+          })
+
+          log.info(`Successfully sent outreach email to creator ${creatorDetails.creator_name}`)
+        } else {
+          errors.push(
+            `Failed to send email to ${creatorDetails.creator_name}: ${emailResult.error}`
+          )
+        }
+      } catch (error) {
+        log.error(`Error sending outreach to creator ${creatorLink.id}:`, error)
+        errors.push(
+          `Error processing creator ${creatorLink.creator?.name || creatorLink.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        )
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        campaignId: params.campaignId,
+        campaignName: campaign.name,
+        totalEligible: eligibleCreators.length,
+        totalSent: results.length,
+        successfulOutreach: results,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeBulkOutreach:', error)
+    return {
+      success: false,
+      error: `Failed to execute bulk outreach. ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

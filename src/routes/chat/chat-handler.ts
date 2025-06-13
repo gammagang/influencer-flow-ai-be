@@ -5,18 +5,47 @@ import {
   discoverCreatorsTool,
   createCampaignTool,
   listCampaignsTool,
-  addCreatorsToCampaignTool
+  addCreatorsToCampaignTool,
+  bulkOutreachTool
 } from './tools'
 import {
   executeDiscoverCreators,
   executeCreateCampaign,
   executeListCampaigns,
-  executeAddCreatorsToCampaign
+  executeAddCreatorsToCampaign,
+  executeBulkOutreach
 } from './services'
 import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
 import { persistentConversationStore as conversationStore } from './conversation-store'
 import { type UserJwt } from '@/middlewares/jwt'
+
+// Utility function to safely convert and validate numeric parameters
+function validateAndCoerceNumericParam(
+  value: unknown,
+  paramName: string,
+  min?: number,
+  max?: number
+): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  const numValue = Number(value)
+  if (isNaN(numValue)) {
+    throw new Error(`Invalid ${paramName} parameter: ${value}. Must be a number.`)
+  }
+
+  if (min !== undefined && numValue < min) {
+    throw new Error(`Invalid ${paramName} parameter: ${value}. Must be >= ${min}.`)
+  }
+
+  if (max !== undefined && numValue > max) {
+    throw new Error(`Invalid ${paramName} parameter: ${value}. Must be <= ${max}.`)
+  }
+
+  return numValue
+}
 
 export async function handleChatMessage(
   message: string,
@@ -84,7 +113,8 @@ export async function handleChatMessage(
           discoverCreatorsTool,
           createCampaignTool,
           listCampaignsTool,
-          addCreatorsToCampaignTool
+          addCreatorsToCampaignTool,
+          bulkOutreachTool
         ],
         tool_choice: 'auto',
         temperature: 0.7,
@@ -132,7 +162,26 @@ export async function handleChatMessage(
       for (const toolCall of assistantMessage.tool_calls) {
         if (toolCall.function.name === 'discover_creators') {
           try {
-            const params = JSON.parse(toolCall.function.arguments) as DiscoverCreatorParams
+            let rawParams: DiscoverCreatorParams
+            try {
+              rawParams = JSON.parse(toolCall.function.arguments) as DiscoverCreatorParams
+            } catch (parseError) {
+              log.error('Failed to parse tool call arguments:', {
+                arguments: toolCall.function.arguments,
+                parseError
+              })
+              throw new Error('Invalid function arguments format')
+            }
+
+            // Validate and coerce parameter types to handle AI model inconsistencies
+            const params: DiscoverCreatorParams = {
+              ...rawParams,
+              // Ensure limit is a number, not a string
+              limit: validateAndCoerceNumericParam(rawParams.limit, 'limit', 1, 50),
+              // Ensure skip is a number if provided
+              skip: validateAndCoerceNumericParam(rawParams.skip, 'skip', 0)
+            }
+
             log.info('Executing discover_creators with params:', params)
 
             const result = await executeDiscoverCreators(params)
@@ -151,13 +200,18 @@ export async function handleChatMessage(
               toolCall.id
             )
           } catch (error) {
-            log.error('Error executing tool call:', error)
+            log.error('Error executing discover_creators tool call:', {
+              error,
+              arguments: toolCall.function.arguments,
+              toolCallId: toolCall.id
+            })
             toolResults.push({
               toolCallId: toolCall.id,
               functionName: toolCall.function.name,
               result: {
                 success: false,
-                error: 'Failed to execute creator search'
+                error:
+                  'Failed to execute creator search. Please check your parameters and try again.'
               }
             })
 
@@ -167,7 +221,8 @@ export async function handleChatMessage(
               'tool',
               JSON.stringify({
                 success: false,
-                error: 'Failed to execute creator search'
+                error:
+                  'Failed to execute creator search. Please check your parameters and try again.'
               }),
               undefined,
               toolCall.id
@@ -301,6 +356,54 @@ export async function handleChatMessage(
               JSON.stringify({
                 success: false,
                 error: 'Failed to add creators to campaign'
+              }),
+              undefined,
+              toolCall.id
+            )
+          }
+        } else if (toolCall.function.name === 'bulk_outreach') {
+          try {
+            const params = JSON.parse(toolCall.function.arguments) as {
+              campaignId: string
+              creatorIds?: string[]
+              personalizedMessage?: string
+              confirmTemplate?: boolean
+            }
+            log.info('Executing bulk_outreach with params:', params)
+
+            const result = await executeBulkOutreach(params, user, currentConversationId)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify(result),
+              undefined,
+              toolCall.id
+            )
+          } catch (error) {
+            log.error('Error executing bulk outreach:', error)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result: {
+                success: false,
+                error: 'Failed to execute bulk outreach'
+              }
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify({
+                success: false,
+                error: 'Failed to execute bulk outreach'
               }),
               undefined,
               toolCall.id

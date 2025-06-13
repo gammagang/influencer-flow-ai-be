@@ -23,10 +23,19 @@ const SYSTEM_PROMPT = `
   2. Addresses the creator by name
   3. Introduces the brand and campaign concisely
   4. Incorporates the personalized message naturally
-  5. Includes the negotiation link (format: Read from param: negotiationLink) with a clear call-to-action
+  5. Includes the negotiation link with a clear call-to-action
   6. Maintains a professional yet friendly tone
   7. Keeps the email between 150-200 words
-  8. Follows standard email formatting conventions
+  8. Uses proper formatting with line breaks and structure
+
+  **FORMATTING REQUIREMENTS:**
+  - Start with a warm, professional greeting
+  - Use proper line breaks (\\n) for paragraph separation  
+  - Include clear section breaks between greeting, body, and closing
+  - Format the call-to-action prominently with proper spacing
+  - End with a professional signature
+  - Example structure:
+    "Hi [Name],\\n\\n[Introduction paragraph]\\n\\n[Campaign details paragraph]\\n\\n[Call to action with link]\\n\\nBest regards,\\nThe [Brand] Team"
 
   IMPORTANT: Always include the negotiation link in the email body with a compelling call-to-action phrase like "Ready to discuss this opportunity?" or "Click here to start the conversation:" followed by the link.
 
@@ -47,12 +56,12 @@ const SYSTEM_PROMPT = `
   }
   \`\`\`
 
-  Output Format (MUST be valid JSON):
+  Output Format (MUST be valid JSON with proper formatting):
 
   \`\`\`json
   {
     "subject": "string - The email subject line",
-    "body": "string - The complete email body with proper formatting"
+    "body": "string - The complete email body with proper line breaks and formatting"
   }
   \`\`\`
 
@@ -78,7 +87,7 @@ function generateStringifiedObject(obj: object): string {
   `
 }
 
-export async function generateUserOutreachEmail(candidate: any) {
+export async function generateUserOutreachEmail(candidate: Record<string, unknown>) {
   const msg = `Generate a personalized outreach email for the following creator: ${generateStringifiedObject(
     candidate
   )}`
@@ -105,7 +114,7 @@ export async function generateUserOutreachEmail(candidate: any) {
       subject: parsedResponse.subject,
       body: parsedResponse.body
     }
-  } catch (error) {
+  } catch {
     throw new Error('Failed to parse email response as JSON')
   }
 }

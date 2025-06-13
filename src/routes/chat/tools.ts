@@ -44,7 +44,11 @@ export const discoverCreatorsTool = {
         },
         limit: {
           type: 'number',
-          description: 'Number of creators to return (default: 12, max: 50)'
+          description:
+            'Number of creators to return (default: 12, max: 50). Must be a number, not a string.',
+          minimum: 1,
+          maximum: 50,
+          default: 12
         }
       }
     }
@@ -135,6 +139,41 @@ export const addCreatorsToCampaignTool = {
         }
       },
       required: ['campaignId', 'creatorHandles']
+    }
+  }
+}
+
+// Function calling tool definition for bulk outreach emails
+export const bulkOutreachTool = {
+  type: 'function' as const,
+  function: {
+    name: 'bulk_outreach',
+    description:
+      'Send personalized outreach emails to multiple creators in a campaign. Can preview template first or send directly to eligible creators.',
+    parameters: {
+      type: 'object',
+      properties: {
+        campaignId: {
+          type: 'string',
+          description: 'The ID of the campaign to send outreach emails for (required)'
+        },
+        creatorIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optional: specific creator IDs to send to. If not provided, sends to all eligible creators in the campaign'
+        },
+        personalizedMessage: {
+          type: 'string',
+          description: 'Optional: custom message to include in all outreach emails'
+        },
+        confirmTemplate: {
+          type: 'boolean',
+          description:
+            'If true (default), shows email template preview and eligible creators for confirmation before sending. If false, sends emails directly. ALWAYS use true first for safety.'
+        }
+      },
+      required: ['campaignId']
     }
   }
 }
