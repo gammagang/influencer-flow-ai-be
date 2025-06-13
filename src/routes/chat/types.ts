@@ -9,6 +9,17 @@ export const ChatRequestSchema = z.object({
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>
 
+// Schema for campaign creation in chat
+export const CreateCampaignChatSchema = z.object({
+  name: z.string().min(1, 'Campaign name is required'),
+  description: z.string().optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format, use YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format, use YYYY-MM-DD'),
+  deliverables: z.array(z.string()).min(1, 'At least one deliverable is required')
+})
+
+export type CreateCampaignChatParams = z.infer<typeof CreateCampaignChatSchema>
+
 // Define interface for tool call results
 export interface ToolCallResult {
   toolCallId: string
@@ -36,6 +47,16 @@ export interface ToolCallResult {
       }>
       total?: number
       searchParams?: DiscoverCreatorParams
+      campaign?: {
+        id: number
+        name: string
+        description: string | null
+        startDate: string
+        endDate: string
+        deliverables: string[]
+        status: string
+        createdAt: string
+      }
     }
     error?: string
   }

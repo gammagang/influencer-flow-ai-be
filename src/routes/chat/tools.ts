@@ -50,3 +50,43 @@ export const discoverCreatorsTool = {
     }
   }
 }
+
+// Function calling tool definition for campaign creation
+export const createCampaignTool = {
+  type: 'function' as const,
+  function: {
+    name: 'create_campaign',
+    description:
+      'Create a new influencer marketing campaign ONLY when you have collected ALL required information from the user: name, start date, end date, and deliverables. Do not call this function until you have confirmed all required details with the user.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Campaign name (required) - must be provided by user'
+        },
+        description: {
+          type: 'string',
+          description: 'Campaign description explaining the goals and objectives (optional)'
+        },
+        startDate: {
+          type: 'string',
+          description:
+            'Campaign start date in YYYY-MM-DD format (required) - must be provided by user'
+        },
+        endDate: {
+          type: 'string',
+          description:
+            'Campaign end date in YYYY-MM-DD format (required) - must be provided by user'
+        },
+        deliverables: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel"])'
+        }
+      },
+      required: ['name', 'startDate', 'endDate', 'deliverables']
+    }
+  }
+}
