@@ -1,8 +1,8 @@
 import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
 import { type DiscoverCreatorParams } from '@/api/discover'
-import { discoverCreatorsTool, createCampaignTool } from './tools'
-import { executeDiscoverCreators, executeCreateCampaign } from './services'
+import { discoverCreatorsTool, createCampaignTool, listCampaignsTool } from './tools'
+import { executeDiscoverCreators, executeCreateCampaign, executeListCampaigns } from './services'
 import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
 import { conversationStore } from './conversation-store'
@@ -67,7 +67,7 @@ export async function handleChatMessage(
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages,
-    tools: [discoverCreatorsTool, createCampaignTool],
+    tools: [discoverCreatorsTool, createCampaignTool, listCampaignsTool],
     tool_choice: 'auto',
     temperature: 0.7,
     max_tokens: 1024
@@ -179,6 +179,48 @@ export async function handleChatMessage(
             JSON.stringify({
               success: false,
               error: 'Failed to create campaign'
+            }),
+            undefined,
+            toolCall.id
+          )
+        }
+      } else if (toolCall.function.name === 'list_campaigns') {
+        try {
+          log.info('Executing list_campaigns')
+
+          const result = await executeListCampaigns(user)
+          toolResults.push({
+            toolCallId: toolCall.id,
+            functionName: toolCall.function.name,
+            result
+          })
+
+          // Store tool result in conversation
+          conversationStore.addMessage(
+            currentConversationId,
+            'tool',
+            JSON.stringify(result),
+            undefined,
+            toolCall.id
+          )
+        } catch (error) {
+          log.error('Error executing list campaigns:', error)
+          toolResults.push({
+            toolCallId: toolCall.id,
+            functionName: toolCall.function.name,
+            result: {
+              success: false,
+              error: 'Failed to list campaigns'
+            }
+          })
+
+          // Store tool result in conversation
+          conversationStore.addMessage(
+            currentConversationId,
+            'tool',
+            JSON.stringify({
+              success: false,
+              error: 'Failed to list campaigns'
             }),
             undefined,
             toolCall.id

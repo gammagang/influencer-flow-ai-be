@@ -90,3 +90,17 @@ export const createCampaignTool = {
     }
   }
 }
+
+// Function calling tool definition for listing campaigns
+export const listCampaignsTool = {
+  type: 'function' as const,
+  function: {
+    name: 'list_campaigns',
+    description: "List all campaigns for the current user's company",
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
+  }
+}

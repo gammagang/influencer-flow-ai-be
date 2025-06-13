@@ -1,5 +1,5 @@
 import { discoverCreator, type DiscoverCreatorParams, mapFollowerCountToTier } from '@/api/discover'
-import { createCampaign } from '@/api/campaign'
+import { createCampaign, getCampaignsByCompanyId } from '@/api/campaign'
 import { findCompanyByUserId } from '@/api/company'
 import { CreateCampaignReq } from '@/routes/campaign/validate'
 import { log } from '@/libs/logger'
@@ -170,6 +170,68 @@ export async function executeCreateCampaign(
     return {
       success: false,
       error: `Failed to create campaign. Please check the details and try again. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute list campaigns
+export async function executeListCampaigns(user: UserJwt) {
+  try {
+    // Find the company for this user
+    const company = await findCompanyByUserId(user.sub)
+    if (!company) {
+      log.error('Company not found for user:', { userId: user.sub })
+      return {
+        success: false,
+        error: 'Company not found for user.'
+      }
+    }
+
+    const companyId = company.id
+    log.info('Found company for user:', {
+      userId: user.sub,
+      companyId: companyId,
+      companyName: company.name
+    })
+
+    // Get all campaigns for the company
+    const campaigns = await getCampaignsByCompanyId(companyId)
+
+    log.info('Retrieved campaigns:', {
+      companyId,
+      campaignCount: campaigns.length
+    })
+
+    // Transform the campaign data for response
+    const transformedCampaigns = campaigns.map((campaign) => ({
+      id: campaign.id,
+      name: campaign.name,
+      description: campaign.description,
+      startDate: campaign.start_date,
+      endDate: campaign.end_date,
+      status: campaign.state,
+      createdAt: campaign.created_at,
+      // Extract deliverables from meta if available
+      deliverables: campaign.meta?.deliverables || [],
+      totalBudget: campaign.meta?.budget?.total || null
+    }))
+
+    return {
+      success: true,
+      data: {
+        campaigns: transformedCampaigns,
+        total: transformedCampaigns.length
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeListCampaigns:', error)
+    if (error instanceof Error) {
+      log.error('Error message:', error.message)
+      log.error('Error stack:', error.stack)
+    }
+    return {
+      success: false,
+      error: `Failed to list campaigns. ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }
