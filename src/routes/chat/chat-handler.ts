@@ -70,6 +70,7 @@ export async function handleChatMessage(
     if (!conversation) {
       conversation = conversationStore.createConversation(
         currentConversationId,
+        user.sub, // Use user ID from JWT
         creatorDiscoverySystemPrompt
       )
     }

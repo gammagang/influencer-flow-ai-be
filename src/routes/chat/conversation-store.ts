@@ -12,6 +12,7 @@ interface ChatMessage {
 
 interface Conversation {
   id: string
+  userId: string
   messages: ChatMessage[]
   createdAt: Date
   updatedAt: Date
@@ -19,15 +20,18 @@ interface Conversation {
 
 class PersistentConversationStore {
   private conversations: Map<string, Conversation> = new Map()
+  private userActiveConversations: Map<string, string> = new Map() // userId -> conversationId (one per user)
   private readonly MAX_CONVERSATIONS = 1000
   private readonly MAX_MESSAGES_PER_CONVERSATION = 50
   private readonly CONVERSATION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
   private readonly STORAGE_PATH = path.join(process.cwd(), 'data', 'conversations')
+  private readonly USER_MAPPING_PATH = path.join(process.cwd(), 'data', 'user-conversations.json')
   private saveTimeout: NodeJS.Timeout | null = null
 
   constructor() {
     this.ensureStorageDirectory()
     this.loadConversations()
+    this.loadUserMappings()
   }
 
   private ensureStorageDirectory() {
@@ -62,6 +66,11 @@ class PersistentConversationStore {
               msg.timestamp = new Date(msg.timestamp)
             })
 
+            // Handle backward compatibility for existing conversations
+            if (!conversation.userId) {
+              conversation.userId = 'unknown' // Default for old conversations
+            }
+
             // Check if conversation has expired
             if (Date.now() - conversation.updatedAt.getTime() > this.CONVERSATION_TTL) {
               fs.unlinkSync(filePath) // Delete expired conversation file
@@ -69,6 +78,43 @@ class PersistentConversationStore {
             }
 
             this.conversations.set(conversation.id, conversation)
+
+            // Rebuild user mappings - each user can only have one conversation
+            if (conversation.userId !== 'unknown') {
+              const existingConversationId = this.userActiveConversations.get(conversation.userId)
+              if (existingConversationId) {
+                const existingConversation = this.conversations.get(existingConversationId)
+                if (existingConversation) {
+                  // Keep the more recent conversation
+                  if (conversation.updatedAt > existingConversation.updatedAt) {
+                    // Delete the older conversation
+                    this.conversations.delete(existingConversationId)
+                    try {
+                      const oldFilePath = this.getConversationFilePath(existingConversationId)
+                      if (fs.existsSync(oldFilePath)) {
+                        fs.unlinkSync(oldFilePath)
+                      }
+                    } catch (error) {
+                      log.error(
+                        `Error deleting old conversation file ${existingConversationId}:`,
+                        error
+                      )
+                    }
+                    this.userActiveConversations.set(conversation.userId, conversation.id)
+                  } else {
+                    // Current conversation is older, delete it
+                    this.conversations.delete(conversation.id)
+                    try {
+                      fs.unlinkSync(filePath)
+                    } catch (error) {
+                      log.error(`Error deleting older conversation file ${conversation.id}:`, error)
+                    }
+                  }
+                }
+              } else {
+                this.userActiveConversations.set(conversation.userId, conversation.id)
+              }
+            }
           } catch (error) {
             log.error(`Error loading conversation file ${file}:`, error)
           }
@@ -91,10 +137,33 @@ class PersistentConversationStore {
       try {
         const filePath = this.getConversationFilePath(conversation.id)
         fs.writeFileSync(filePath, JSON.stringify(conversation, null, 2))
+        this.saveUserMappings() // Save user mappings when saving conversation
       } catch (error) {
         log.error(`Error saving conversation ${conversation.id}:`, error)
       }
     }, 1000) // Save after 1 second of inactivity
+  }
+
+  private loadUserMappings() {
+    try {
+      if (fs.existsSync(this.USER_MAPPING_PATH)) {
+        const data = fs.readFileSync(this.USER_MAPPING_PATH, 'utf8')
+        const mappings = JSON.parse(data)
+        this.userActiveConversations = new Map(Object.entries(mappings))
+        log.info(`Loaded ${this.userActiveConversations.size} user conversation mappings`)
+      }
+    } catch (error) {
+      log.error('Error loading user mappings:', error)
+    }
+  }
+
+  private saveUserMappings() {
+    try {
+      const mappings = Object.fromEntries(this.userActiveConversations)
+      fs.writeFileSync(this.USER_MAPPING_PATH, JSON.stringify(mappings, null, 2))
+    } catch (error) {
+      log.error('Error saving user mappings:', error)
+    }
   }
 
   generateConversationId(): string {
@@ -126,9 +195,10 @@ class PersistentConversationStore {
     return conversation
   }
 
-  createConversation(conversationId: string, systemPrompt: string): Conversation {
+  createConversation(conversationId: string, userId: string, systemPrompt: string): Conversation {
     const conversation: Conversation = {
       id: conversationId,
+      userId: userId,
       messages: [
         {
           role: 'system',
@@ -141,6 +211,7 @@ class PersistentConversationStore {
     }
 
     this.conversations.set(conversationId, conversation)
+    this.userActiveConversations.set(userId, conversationId) // Map user to this conversation
     this.saveConversation(conversation)
     this.cleanupOldConversations()
     return conversation
@@ -220,17 +291,6 @@ class PersistentConversationStore {
       }
     })
   }
-  // Helper method to get conversation stats (for debugging)
-  getStats() {
-    return {
-      totalConversations: this.conversations.size,
-      conversations: Array.from(this.conversations.entries()).map(([id, conv]) => ({
-        id,
-        messageCount: conv.messages.length,
-        lastUpdated: conv.updatedAt
-      }))
-    }
-  }
 
   // Delete a specific conversation
   deleteConversation(conversationId: string): boolean {
@@ -238,6 +298,11 @@ class PersistentConversationStore {
 
     if (!conversation) {
       return false
+    }
+
+    // Remove user mapping if this was their conversation
+    if (conversation.userId) {
+      this.userActiveConversations.delete(conversation.userId)
     }
 
     // Remove from memory
@@ -250,11 +315,55 @@ class PersistentConversationStore {
         fs.unlinkSync(filePath)
         log.info(`Deleted conversation file: ${conversationId}`)
       }
+
+      // Save user mappings after deletion
+      this.saveUserMappings()
+
       return true
     } catch (error) {
       log.error(`Error deleting conversation file ${conversationId}:`, error)
       return false
     }
+  }
+
+  // Get user's conversation
+  getUserActiveConversation(userId: string): Conversation | null {
+    const conversationId = this.userActiveConversations.get(userId)
+    if (!conversationId) {
+      return null
+    }
+    return this.getConversation(conversationId)
+  }
+
+  // Create or get user's conversation
+  getOrCreateUserConversation(userId: string, systemPrompt: string): Conversation {
+    // Check if user has a conversation
+    let conversation = this.getUserActiveConversation(userId)
+
+    if (conversation) {
+      return conversation
+    }
+
+    // Create new conversation for user
+    const conversationId = this.generateConversationId()
+    conversation = this.createConversation(conversationId, userId, systemPrompt)
+
+    return conversation
+  }
+
+  // Delete user's conversation and remove mapping
+  deleteUserConversation(userId: string): boolean {
+    const conversationId = this.userActiveConversations.get(userId)
+    if (!conversationId) {
+      return false
+    }
+
+    // Remove user mapping
+    this.userActiveConversations.delete(userId)
+    this.saveUserMappings()
+
+    // Delete the conversation
+    return this.deleteConversation(conversationId)
   }
 }
 

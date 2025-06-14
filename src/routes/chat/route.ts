@@ -10,14 +10,22 @@ const chatRouter = Router()
 chatRouter.post('/message', async (req: Request, res: Response) => {
   try {
     // Validate request
-    const { message, conversationId } = ChatRequestSchema.parse(req.body)
+    const { message } = ChatRequestSchema.parse(req.body)
 
     // User is available from JWT middleware
     if (!req.user) {
       throw new Error('User not authenticated')
     }
 
-    const response = await handleChatMessage(message, req.user, conversationId)
+    const userId = req.user.sub
+
+    // Get or create user's conversation (each user can only have one)
+    const conversation = conversationStore.getOrCreateUserConversation(
+      userId,
+      'You are a helpful AI assistant specialized in influencer marketing and campaign management.'
+    )
+
+    const response = await handleChatMessage(message, req.user, conversation.id)
 
     SuccessResponse.send({
       res,
@@ -52,85 +60,67 @@ chatRouter.post('/message', async (req: Request, res: Response) => {
   }
 })
 
-// Get conversation history
-chatRouter.get('/conversation/:id', async (req: Request, res: Response) => {
-  const { id } = req.params
-
+// Get user's conversation
+chatRouter.get('/user/conversation', async (req: Request, res: Response) => {
   try {
-    log.info('Getting conversation history for:', id)
-    const messages = conversationStore.getMessages(id)
-    log.info('Found messages:', messages.length)
+    if (!req.user) {
+      throw new Error('User not authenticated')
+    }
+
+    const userId = req.user.sub
+    const conversation = conversationStore.getUserActiveConversation(userId)
+
+    if (!conversation) {
+      SuccessResponse.send({
+        res,
+        data: {
+          message: 'No conversation found',
+          conversation: null
+        }
+      })
+      return
+    }
 
     SuccessResponse.send({
       res,
       data: {
-        conversationId: id,
-        messages: messages.map((msg) => ({
+        conversationId: conversation.id,
+        messages: conversation.messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
           timestamp: msg.timestamp,
-          tool_call_id: msg.tool_call_id, // Include tool_call_id for tool messages
-          tool_calls: msg.tool_calls // Include tool_calls for assistant messages
+          tool_call_id: msg.tool_call_id,
+          tool_calls: msg.tool_calls
         })),
-        total: messages.length
+        total: conversation.messages.length
       }
     })
   } catch (error) {
-    log.error('Error getting conversation:', error)
+    log.error('Error getting user conversation:', error)
+    throw new Error('Failed to get user conversation')
+  }
+})
+
+// Delete user's conversation
+chatRouter.delete('/user/conversation', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      throw new Error('User not authenticated')
+    }
+
+    const userId = req.user.sub
+    const deleted = conversationStore.deleteUserConversation(userId)
+
     SuccessResponse.send({
       res,
       data: {
-        conversationId: id,
-        messages: [],
-        message: 'Conversation not found'
+        message: deleted ? 'Conversation deleted successfully' : 'No conversation found',
+        deleted
       }
     })
-  }
-})
-
-// Get conversation stats (for debugging)
-chatRouter.get('/stats', async (req: Request, res: Response) => {
-  try {
-    const stats = conversationStore.getStats()
-
-    SuccessResponse.send({
-      res,
-      data: stats
-    })
   } catch (error) {
-    log.error('Error getting conversation stats:', error)
-    throw new Error('Failed to get conversation stats')
-  }
-})
-
-// Delete/clear a conversation
-chatRouter.delete('/conversation/:id', async (req: Request, res: Response) => {
-  const { id } = req.params
-
-  try {
-    log.info('Deleting conversation:', id)
-    const deleted = conversationStore.deleteConversation(id)
-
-    if (deleted) {
-      SuccessResponse.send({
-        res,
-        data: {
-          message: 'Conversation deleted successfully',
-          conversationId: id
-        }
-      })
-    } else {
-      SuccessResponse.send({
-        res,
-        data: {
-          message: 'Conversation not found',
-          conversationId: id
-        }
-      })
-    }
-  } catch (error) {
-    log.error('Error deleting conversation:', error)
-    throw new Error('Failed to delete conversation')
+    log.error('Error deleting user conversation:', error)
+    throw new Error('Failed to delete user conversation')
   }
 })
 

@@ -11,6 +11,6 @@ test-output
 # Webhook logs
 webhook-logs/
 
-data/conversations/
+data/
 
 docuseal
