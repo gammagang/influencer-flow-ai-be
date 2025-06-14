@@ -180,6 +180,8 @@ export const bulkOutreachTool = {
 }
 
 // Function calling tool definition for deleting campaigns
+// Note: The deletion logic checks for creator associations across ALL companies,
+// not just the same company. This ensures global creators shared between companies are preserved.
 export const deleteCampaignTool = {
   type: 'function' as const,
   function: {

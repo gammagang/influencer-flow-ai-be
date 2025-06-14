@@ -797,7 +797,7 @@ export async function executeDeleteCampaign(
         deletedCreatorsCount: result.deletedCreators.length,
         message: `Campaign "${result.deletedCampaign.name}" has been successfully deleted${
           result.deletedCreators.length > 0
-            ? ` along with ${result.deletedCreators.length} creator(s) that were only linked to this campaign.`
+            ? ` along with ${result.deletedCreators.length} creator(s) that were only linked to this campaign across all companies.`
             : '.'
         }`
       }

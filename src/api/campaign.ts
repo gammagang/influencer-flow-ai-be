@@ -124,20 +124,18 @@ export async function deleteCampaign(
 
   const creatorIds = campaignCreators.map((cc) => cc.creator_id)
 
-  // Find creators that are ONLY linked to this campaign (and not to other campaigns of the same company)
+  // Find creators that are ONLY linked to this campaign (and not to other campaigns across ALL companies)
   const creatorsToDelete: string[] = []
 
   for (const creatorId of creatorIds) {
     const otherCampaignLinks = await sql`
       SELECT COUNT(*) as count
       FROM campaign_creator cc
-      JOIN campaign c ON cc.campaign_id = c.id
       WHERE cc.creator_id = ${creatorId}
-        AND c.company_id = ${companyId}
         AND cc.campaign_id != ${campaignId}
     `
 
-    // If creator is not linked to any other campaigns of this company, mark for deletion
+    // If creator is not linked to any other campaigns across any company, mark for deletion
     if (otherCampaignLinks[0].count === 0) {
       creatorsToDelete.push(creatorId.toString())
     }
