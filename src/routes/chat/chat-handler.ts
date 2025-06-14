@@ -3,7 +3,7 @@ import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
 import { type UserJwt } from '@/middlewares/jwt'
 import { persistentConversationStore as conversationStore } from './conversation-store'
-import { creatorDiscoverySystemPrompt } from './prompts-condensed'
+import { creatorDiscoverySystemPrompt, finalResponseSystemPrompt } from './prompts-condensed'
 import {
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
@@ -663,21 +663,20 @@ export async function handleChatMessage(
         return { role: 'user' as const, content: msg.content }
       })
 
-      // Get final response from Groq
-      // Add explicit instruction to use only tool results
+      // Get final response from Groq with specialized system prompt for summarization
       const finalMessages = [
-        ...followUpMessages,
         {
-          role: 'user' as const,
-          content:
-            'Based on the tool results above, provide a response. Do NOT mention any creators that were not returned by the discover_creators tool. Only reference the actual creators found in the database.'
-        }
+          role: 'system' as const,
+          content: finalResponseSystemPrompt
+        },
+        // Include the last few messages for context (user message, assistant with tools, tool results)
+        ...followUpMessages.slice(-6) // Keep last 6 messages for context
       ]
 
       const finalCompletion = await groq.chat.completions.create({
         model: 'llama-3.1-8b-instant',
         messages: finalMessages,
-        temperature: 0.7,
+        temperature: 0.3, // Lower temperature for more consistent summarization
         max_tokens: 1024
       })
 
