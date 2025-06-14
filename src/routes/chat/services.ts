@@ -21,6 +21,30 @@ import {
 import { generateEmailTemplate } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 
+// In-memory cache for email templates (cleared on server restart)
+const emailTemplateCache = new Map<
+  string,
+  {
+    subject: string
+    body: string
+    emailData: Record<string, unknown>
+    timestamp: number
+  }
+>()
+
+// Cache expiry time: 1 hour
+const TEMPLATE_CACHE_TTL = 60 * 60 * 1000
+
+// Helper function to clean expired cache entries
+function cleanExpiredTemplates() {
+  const now = Date.now()
+  for (const [key, value] of emailTemplateCache.entries()) {
+    if (now - value.timestamp > TEMPLATE_CACHE_TTL) {
+      emailTemplateCache.delete(key)
+    }
+  }
+}
+
 interface CampaignResult {
   id: number
   name: string
@@ -430,11 +454,15 @@ export async function executeBulkOutreach(
     confirmTemplate?: boolean // Whether to show template confirmation first (defaults to true for safety)
   },
   _user: UserJwt,
-  _conversationId: string
+  conversationId: string
 ) {
   try {
     // Default to showing template confirmation for safety
     const shouldConfirmTemplate = params.confirmTemplate !== false
+
+    // Define cache key once for both preview and send operations
+    const templateCacheKey = `bulkOutreachTemplate_${params.campaignId}_${conversationId}`
+
     // Validate campaign exists and get details
     const campaign = await getCampaignById(params.campaignId)
     if (!campaign) {
@@ -519,15 +547,23 @@ export async function executeBulkOutreach(
 
       const templateEmail = await generateEmailTemplate(emailData)
 
-      // Create a sample with actual creator data for preview
+      // Cache the template for later use during actual sending
+      cleanExpiredTemplates() // Clean old entries before adding new one
+      emailTemplateCache.set(templateCacheKey, {
+        subject: templateEmail.subject,
+        body: templateEmail.body,
+        emailData,
+        timestamp: Date.now()
+      })
+
+      log.info(
+        `Cached email template for campaign ${params.campaignId} in conversation ${conversationId}`
+      )
+
+      // Create a sample with placeholders preserved for preview
       const sampleEmail = {
-        subject: templateEmail.subject.replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name),
-        body: templateEmail.body
-          .replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name)
-          .replace(
-            /{{NEGOTIATION_LINK}}/g,
-            `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${firstCreator.id}`
-          )
+        subject: templateEmail.subject, // Keep placeholder in subject for preview
+        body: templateEmail.body // Keep all placeholders in body for preview
       }
 
       return {
@@ -548,46 +584,69 @@ export async function executeBulkOutreach(
       }
     }
 
-    // Execute bulk outreach using template-based approach
+    // Execute bulk outreach using cached template if available, otherwise generate new one
     const results = []
     const errors = []
 
-    // Generate a single email template using AI (only once)
-    let emailTemplate = null
-    try {
-      // Use the first creator's data to generate a template
-      const firstCreator = eligibleCreators[0]
-      const firstCreatorDetails = await getCampaignCreatorWithCampaignDetails(
-        firstCreator.id.toString()
-      )
+    // Try to get cached template first
+    let cachedTemplate = emailTemplateCache.get(templateCacheKey)
 
-      if (!firstCreatorDetails) {
+    // Check if cached template is still valid (not expired)
+    if (cachedTemplate && Date.now() - cachedTemplate.timestamp > TEMPLATE_CACHE_TTL) {
+      emailTemplateCache.delete(templateCacheKey)
+      cachedTemplate = undefined
+      log.info(`Expired cached template for campaign ${params.campaignId}`)
+    }
+
+    let emailTemplate = null
+
+    if (cachedTemplate) {
+      // Use the cached template (ensures consistency with preview)
+      emailTemplate = {
+        subject: cachedTemplate.subject,
+        body: cachedTemplate.body
+      }
+      log.info(`Using cached email template for campaign ${params.campaignId}`)
+    } else {
+      // Generate a new email template using AI (fallback if no cache)
+      log.info(
+        `No cached template found, generating new template for campaign ${params.campaignId}`
+      )
+      try {
+        // Use the first creator's data to generate a template
+        const firstCreator = eligibleCreators[0]
+        const firstCreatorDetails = await getCampaignCreatorWithCampaignDetails(
+          firstCreator.id.toString()
+        )
+
+        if (!firstCreatorDetails) {
+          return {
+            success: false,
+            error: 'Failed to get creator details for template generation'
+          }
+        }
+
+        const templateData = {
+          subject: `Partnership Opportunity with ${campaign.name}`,
+          recipient: {
+            name: '{{CREATOR_NAME}}', // Placeholder
+            email: 'template@example.com'
+          },
+          campaignDetails: firstCreatorDetails.campaign_description || campaign.description || '',
+          brandName: 'Your Brand',
+          campaignName: campaign.name,
+          personalizedMessage: params.personalizedMessage || '',
+          negotiationLink: '{{NEGOTIATION_LINK}}' // Placeholder
+        }
+
+        emailTemplate = await generateEmailTemplate(templateData)
+        log.info('Generated new email template successfully')
+      } catch (error) {
+        log.error('Error generating email template:', error)
         return {
           success: false,
-          error: 'Failed to get creator details for template generation'
+          error: 'Failed to generate email template'
         }
-      }
-
-      const templateData = {
-        subject: `Partnership Opportunity with ${campaign.name}`,
-        recipient: {
-          name: '{{CREATOR_NAME}}', // Placeholder
-          email: 'template@example.com'
-        },
-        campaignDetails: firstCreatorDetails.campaign_description || campaign.description || '',
-        brandName: 'Your Brand',
-        campaignName: campaign.name,
-        personalizedMessage: params.personalizedMessage || '',
-        negotiationLink: '{{NEGOTIATION_LINK}}' // Placeholder
-      }
-
-      emailTemplate = await generateEmailTemplate(templateData)
-      log.info('Generated email template successfully')
-    } catch (error) {
-      log.error('Error generating email template:', error)
-      return {
-        success: false,
-        error: 'Failed to generate email template'
       }
     }
 
@@ -648,6 +707,12 @@ export async function executeBulkOutreach(
           `Error processing creator ${creatorLink.creator?.name || creatorLink.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
       }
+    }
+
+    // Clean up the cached template after successful bulk outreach
+    if (emailTemplateCache.has(templateCacheKey)) {
+      emailTemplateCache.delete(templateCacheKey)
+      log.info(`Cleaned up cached template for campaign ${params.campaignId}`)
     }
 
     return {
