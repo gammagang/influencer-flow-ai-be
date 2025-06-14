@@ -698,3 +698,110 @@ export async function executeDeleteCampaign(
     }
   }
 }
+
+// Function to execute getting campaign creator lifecycle status
+export async function executeGetCampaignCreatorStatus(
+  params: { campaignId: string },
+  user: UserJwt
+) {
+  try {
+    log.info('Executing getCampaignCreatorStatus:', {
+      campaignId: params.campaignId,
+      userId: user.sub
+    })
+
+    // Get the user's company
+    const company = await findCompanyByUserId(user.sub || '')
+    if (!company?.id) {
+      return {
+        success: false,
+        error: 'No company found for the user'
+      }
+    }
+
+    // Get campaign to verify ownership
+    const campaign = await getCampaignById(params.campaignId)
+    if (!campaign) {
+      return {
+        success: false,
+        error: `Campaign with ID ${params.campaignId} not found`
+      }
+    }
+
+    // Verify that the campaign belongs to the user's company
+    if (campaign.company_id.toString() !== company.id.toString()) {
+      return {
+        success: false,
+        error: 'You do not have permission to access this campaign'
+      }
+    }
+
+    // Get all creators in the campaign
+    const creators = await getCampaignCreators({
+      campaignId: params.campaignId,
+      creatorId: undefined,
+      status: undefined,
+      page: 1,
+      limit: 1000 // Get all creators
+    })
+
+    // Group creators by their current state and calculate counts
+    const statusCounts = creators.items.reduce((acc: Record<string, number>, creator) => {
+      const status = creator.current_state || 'unknown'
+      acc[status] = (acc[status] || 0) + 1
+      return acc
+    }, {})
+
+    // Calculate total creators
+    const totalCreators = creators.items.length
+
+    // Define lifecycle stages in order
+    const lifecycleStages = [
+      'discovered',
+      'outreached',
+      'call complete',
+      'waiting for contract',
+      'waiting for signature',
+      'onboarded',
+      'fulfilled'
+    ]
+
+    // Build detailed status breakdown
+    const statusBreakdown = lifecycleStages.map((stage) => ({
+      stage,
+      count: statusCounts[stage] || 0,
+      percentage:
+        totalCreators > 0 ? Math.round(((statusCounts[stage] || 0) / totalCreators) * 100) : 0
+    }))
+
+    // Add any other statuses not in the standard lifecycle
+    Object.keys(statusCounts).forEach((status) => {
+      if (!lifecycleStages.includes(status)) {
+        statusBreakdown.push({
+          stage: status,
+          count: statusCounts[status],
+          percentage:
+            totalCreators > 0 ? Math.round((statusCounts[status] / totalCreators) * 100) : 0
+        })
+      }
+    })
+
+    return {
+      success: true,
+      data: {
+        campaignId: params.campaignId,
+        campaignName: campaign.name,
+        totalCreators,
+        statusCounts,
+        statusBreakdown,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeGetCampaignCreatorStatus:', error)
+    return {
+      success: false,
+      error: `Failed to get campaign creator status. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}

@@ -7,7 +7,8 @@ import {
   listCampaignsTool,
   addCreatorsToCampaignTool,
   bulkOutreachTool,
-  deleteCampaignTool
+  deleteCampaignTool,
+  getCampaignCreatorStatusTool
 } from './tools'
 import {
   executeDiscoverCreators,
@@ -15,7 +16,8 @@ import {
   executeListCampaigns,
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
-  executeDeleteCampaign
+  executeDeleteCampaign,
+  executeGetCampaignCreatorStatus
 } from './services'
 import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
@@ -118,7 +120,8 @@ export async function handleChatMessage(
           listCampaignsTool,
           addCreatorsToCampaignTool,
           bulkOutreachTool,
-          deleteCampaignTool
+          deleteCampaignTool,
+          getCampaignCreatorStatusTool
         ],
         tool_choice: 'auto',
         temperature: 0.7,
@@ -467,6 +470,51 @@ export async function handleChatMessage(
               JSON.stringify({
                 success: false,
                 error: 'Failed to delete campaign'
+              }),
+              undefined,
+              toolCall.id
+            )
+          }
+        } else if (toolCall.function.name === 'get_campaign_creator_status') {
+          try {
+            const params = JSON.parse(toolCall.function.arguments) as {
+              campaignId: string
+            }
+            log.info('Executing get_campaign_creator_status with params:', params)
+
+            const result = await executeGetCampaignCreatorStatus(params, user)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify(result),
+              undefined,
+              toolCall.id
+            )
+          } catch (error) {
+            log.error('Error executing get campaign creator status:', error)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result: {
+                success: false,
+                error: 'Failed to get campaign creator status'
+              }
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify({
+                success: false,
+                error: 'Failed to get campaign creator status'
               }),
               undefined,
               toolCall.id

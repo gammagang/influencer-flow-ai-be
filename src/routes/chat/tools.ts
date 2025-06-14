@@ -202,3 +202,23 @@ export const deleteCampaignTool = {
     }
   }
 }
+
+// Function calling tool definition for getting campaign creator lifecycle status
+export const getCampaignCreatorStatusTool = {
+  type: 'function' as const,
+  function: {
+    name: 'get_campaign_creator_status',
+    description:
+      'Get the lifecycle status overview for all creators in a specific campaign. Shows counts and percentages for each status stage like discovered, outreached, onboarded, etc.',
+    parameters: {
+      type: 'object',
+      properties: {
+        campaignId: {
+          type: 'string',
+          description: 'The ID of the campaign to get creator status for (required)'
+        }
+      },
+      required: ['campaignId']
+    }
+  }
+}

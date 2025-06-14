@@ -6,10 +6,13 @@ import {
   updateCampaignCreatorLink,
   updateCampaignCreatorState
 } from '@/api/campaign-creator'
-import { getCompanyById } from '@/api/company'
+import { getCampaignById } from '@/api/campaign'
+import { getCompanyById, findCompanyByUserId } from '@/api/company'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { NotFoundError } from '@/errors/not-found-error'
+import { BadRequestError } from '@/errors/bad-request-error'
+import { ForbiddenError } from '@/errors/forbidden-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { validateRequest } from '@/middlewares/validate-request'
 import { Router, type Request, type Response } from 'express'
@@ -23,7 +26,6 @@ import {
 } from './validate'
 import configs from '@/configs'
 import { sendContractViaEmail } from '@/libs/docuseal'
-
 const router = Router()
 
 router.post('/', async (req: Request, res: Response) => {
@@ -385,6 +387,129 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     console.error('Contract generation error:', error)
     throw new Error(error.message || 'Failed to send contract via DocuSeal')
   }
+})
+
+// Creator lifecycle status endpoint
+router.post('/:ccMappingId/status', async (req: Request, res: Response) => {
+  const ccMappingId = req.params.ccMappingId
+  const { status } = req.body
+
+  try {
+    // Validate status
+    const validStatuses = [
+      'pending',
+      'approved',
+      'rejected',
+      'outreached',
+      'contract sent',
+      'waiting for signature'
+    ]
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestError(`Invalid status: ${status} is not allowed`, req.path)
+    }
+
+    // Check if the campaign-creator mapping exists
+    const mapping = await getCampaignCreatorWithCampaignDetails(ccMappingId)
+    if (!mapping) {
+      throw new NotFoundError(
+        'Campaign-Creator mapping not found',
+        `Mapping with ID ${ccMappingId} not found`,
+        req.path
+      )
+    }
+
+    // Update the status
+    await updateCampaignCreatorState(ccMappingId, status)
+
+    SuccessResponse.send({ res, data: { message: 'Status updated successfully' } })
+  } catch (error: any) {
+    if (error instanceof NotFoundError || error instanceof BadRequestError) {
+      throw error // Rethrow known errors
+    }
+    throw new Error(error.message || 'Failed to update status')
+  }
+})
+
+// Get creator lifecycle status for campaign
+router.get('/campaign/:campaignId/lifecycle-status', async (req: Request, res: Response) => {
+  const campaignId = req.params.campaignId
+
+  // Get the authenticated user's company
+  const company = await findCompanyByUserId(req.user?.sub || '')
+  if (!company?.id) throw new BadRequestError('No company found for the user', req.path)
+
+  // Get campaign to verify ownership
+  const campaign = await getCampaignById(campaignId)
+  if (!campaign)
+    throw new NotFoundError(
+      'Campaign not found',
+      `Campaign with ID ${campaignId} not found`,
+      req.path
+    )
+
+  // Verify that the campaign belongs to the user's company
+  if (campaign.company_id.toString() !== company.id.toString()) throw new ForbiddenError(req.path)
+
+  // Get all creators in the campaign using the existing campaign-creator API
+  const creators = await getCampaignCreators({
+    campaignId,
+    creatorId: undefined,
+    status: undefined,
+    page: 1,
+    limit: 1000 // Get all creators
+  })
+
+  // Group creators by their current state and calculate counts
+  const statusCounts = creators.items.reduce((acc: Record<string, number>, creator) => {
+    const status = creator.current_state || 'unknown'
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {})
+
+  // Calculate total creators
+  const totalCreators = creators.items.length
+
+  // Define lifecycle stages in order
+  const lifecycleStages = [
+    'discovered',
+    'outreached',
+    'call complete',
+    'waiting for contract',
+    'waiting for signature',
+    'onboarded',
+    'fulfilled'
+  ]
+
+  // Build detailed status breakdown
+  const statusBreakdown = lifecycleStages.map((stage) => ({
+    stage,
+    count: statusCounts[stage] || 0,
+    percentage:
+      totalCreators > 0 ? Math.round(((statusCounts[stage] || 0) / totalCreators) * 100) : 0
+  }))
+
+  // Add any other statuses not in the standard lifecycle
+  Object.keys(statusCounts).forEach((status) => {
+    if (!lifecycleStages.includes(status)) {
+      statusBreakdown.push({
+        stage: status,
+        count: statusCounts[status],
+        percentage: totalCreators > 0 ? Math.round((statusCounts[status] / totalCreators) * 100) : 0
+      })
+    }
+  })
+
+  SuccessResponse.send({
+    res,
+    data: {
+      campaignId,
+      campaignName: campaign.name,
+      totalCreators,
+      statusCounts,
+      statusBreakdown,
+      lastUpdated: new Date().toISOString()
+    }
+  })
 })
 
 export { router as campaignCreatorRouter }

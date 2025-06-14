@@ -10,7 +10,7 @@ const configs = () => ({
     correlationIdField: process.env.CORR_ID || 'x-correlation-id'
   },
   groqApiKey: process.env.GROQ_API_KEY || '',
-  groqModel: process.env.GROQ_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct', // 'llama-3.3-70b-versatile',
+  groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', //'deepseek-r1-distill-llama-70b'
   yltic: {
     apiKey: process.env.YLYTIC_API_KEY || '',
     isMocked: process.env.IS_YLYTIC_MOCKED === 'true' || false
