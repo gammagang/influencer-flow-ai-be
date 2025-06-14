@@ -345,7 +345,9 @@ export async function executeAddCreatorsToCampaign(
     for (const handle of params.creatorHandles) {
       try {
         const discoveredCreator = discoveredCreators.find(
-          (creator) => creator.handle === handle || creator.name === handle
+          (creator) =>
+            creator.handle.toLowerCase() === handle.toLowerCase() ||
+            creator.name.toLowerCase() === handle.toLowerCase()
         )
 
         if (!discoveredCreator) {
