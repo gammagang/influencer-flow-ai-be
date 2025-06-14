@@ -127,7 +127,7 @@ export async function handleChatMessage(
           smartCampaignStatusTool
         ],
         tool_choice: 'auto',
-        temperature: 0.7,
+        temperature: 0.2, // Lower temperature for more deterministic responses
         max_tokens: 512
       })
     } catch (error: unknown) {
