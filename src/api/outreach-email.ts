@@ -1,4 +1,3 @@
-import configs from '@/configs'
 import { groq } from '@/libs/groq'
 import {
   ChatCompletionMessageParam,
@@ -88,7 +87,7 @@ export async function generateUserOutreachEmail(candidate: Record<string, unknow
 
   const completion = await groq.chat.completions.create({
     messages,
-    model: configs.groqModel,
+    model: 'llama-3.1-8b-instant',
     response_format: { type: 'json_object' },
     temperature: 0.7
   })
@@ -127,7 +126,7 @@ export async function generateEmailTemplate(templateData: Record<string, unknown
 
   const completion = await groq.chat.completions.create({
     messages,
-    model: configs.groqModel,
+    model: 'llama-3.1-8b-instant',
     response_format: { type: 'json_object' },
     temperature: 0.7
   })

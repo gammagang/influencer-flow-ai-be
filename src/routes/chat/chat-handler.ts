@@ -1,31 +1,30 @@
+import { type DiscoverCreatorParams } from '@/api/discover'
 import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
-import { type DiscoverCreatorParams } from '@/api/discover'
+import { type UserJwt } from '@/middlewares/jwt'
+import { persistentConversationStore as conversationStore } from './conversation-store'
+import { creatorDiscoverySystemPrompt } from './prompts-condensed'
 import {
-  discoverCreatorsTool,
-  createCampaignTool,
-  listCampaignsTool,
-  addCreatorsToCampaignTool,
-  bulkOutreachTool,
-  deleteCampaignTool,
-  smartCampaignStatusTool,
-  getCampaignCreatorDetailsTool
-} from './tools'
-import {
-  executeDiscoverCreators,
-  executeCreateCampaign,
-  executeListCampaigns,
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
+  executeCreateCampaign,
   executeDeleteCampaign,
-  executeSmartCampaignStatus,
-  executeGetCampaignCreatorDetails
+  executeDiscoverCreators,
+  executeGetCampaignCreatorDetails,
+  executeListCampaigns,
+  executeSmartCampaignStatus
 } from './services'
-import { creatorDiscoverySystemPrompt } from './prompts-condensed'
-import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
-import { persistentConversationStore as conversationStore } from './conversation-store'
-import { type UserJwt } from '@/middlewares/jwt'
-import configs from '@/configs'
+import {
+  addCreatorsToCampaignTool,
+  bulkOutreachTool,
+  createCampaignTool,
+  deleteCampaignTool,
+  discoverCreatorsTool,
+  getCampaignCreatorDetailsTool,
+  listCampaignsTool,
+  smartCampaignStatusTool
+} from './tools'
+import { type ChatResponse, type CreateCampaignChatParams, type ToolCallResult } from './types'
 
 // Utility function to safely convert and validate numeric parameters
 function validateAndCoerceNumericParam(
@@ -115,7 +114,7 @@ export async function handleChatMessage(
     let completion
     try {
       completion = await groq.chat.completions.create({
-        model: configs.groqModel,
+        model: 'llama-3.1-8b-instant',
         messages,
         tools: [
           discoverCreatorsTool,
@@ -676,7 +675,7 @@ export async function handleChatMessage(
       ]
 
       const finalCompletion = await groq.chat.completions.create({
-        model: configs.groqModel,
+        model: 'llama-3.1-8b-instant',
         messages: finalMessages,
         temperature: 0.7,
         max_tokens: 1024
