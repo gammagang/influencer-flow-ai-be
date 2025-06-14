@@ -665,9 +665,19 @@ export async function handleChatMessage(
       })
 
       // Get final response from Groq
+      // Add explicit instruction to use only tool results
+      const finalMessages = [
+        ...followUpMessages,
+        {
+          role: 'user' as const,
+          content:
+            'Based on the tool results above, provide a response. Do NOT mention any creators that were not returned by the discover_creators tool. Only reference the actual creators found in the database.'
+        }
+      ]
+
       const finalCompletion = await groq.chat.completions.create({
         model: configs.groqModel,
-        messages: followUpMessages,
+        messages: finalMessages,
         temperature: 0.7,
         max_tokens: 1024
       })
