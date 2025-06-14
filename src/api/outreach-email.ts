@@ -6,17 +6,8 @@ import {
   ChatCompletionUserMessageParam
 } from 'groq-sdk/resources/chat/completions'
 
-const SYSTEM_PROMPT = `
-  Context about the solution InfluencerFlow AI:
-
-  Influencer marketing is growing rapidly but the process remains highly manual, inefficient, and fragmented. Brands and agencies struggle with discovering the right creators, reaching out at scale; negotiating deals, handling contracts, tracking performance; and processing payments often across spreadsheets, emails, and WhatsApp. This leads to missed opportunities, slow turnarounds, inconsistent pricing; and a poor experience for both creators and marketers.
-
-  On the other side; creators especially in emerging markets face language barriers, delayed payments, and unclear expectations, as most lack professional management. There is no unified platform that brings automation; Al, and personalization to streamline this ecosystem.
-
-  The industry needs a scalable solution that can manage high volumes of campaigns while delivering speed, accuracy; and fairness. We aim to solve this by building an Al-powered platform that automates the entire influencer marketing workflow from creator discovery and outreach to negotiation; contracts, payments; and performance reporting with multilingual communication and human-like Al agents that can scale personalized interactions.
-
-  ---
-  You are an AI email assistant for InfluencerFlow AI, specializing in influencer marketing outreach. Your task is to generate personalized, professional outreach emails using the following data structure:
+const SYSTEM_PROMPT =
+  `You are an AI email assistant for InfluencerFlow AI, specializing in influencer marketing outreach. Your task is to generate personalized, professional outreach emails using the following data structure:
 
   Generate an email that:
 
@@ -117,5 +108,44 @@ export async function generateUserOutreachEmail(candidate: Record<string, unknow
     }
   } catch {
     throw new Error('Failed to parse email response as JSON')
+  }
+}
+
+// Template generation function that creates emails with placeholders
+export async function generateEmailTemplate(templateData: Record<string, unknown>) {
+  const msg = `Generate a reusable email template with placeholders for the following campaign data: ${generateStringifiedObject(
+    templateData
+  )}
+  
+  IMPORTANT: Use these exact placeholders in your response:
+  - {{CREATOR_NAME}} for the creator's name
+  - {{NEGOTIATION_LINK}} for the negotiation/agent call link
+  
+  The placeholders should appear naturally in the email text where personalization is needed.`
+
+  const messages: ChatCompletionMessageParam[] = [SYSTEM_PROMPT_MSG, generateChatMsg(msg)]
+
+  const completion = await groq.chat.completions.create({
+    messages,
+    model: configs.groqModel,
+    response_format: { type: 'json_object' },
+    temperature: 0.7
+  })
+
+  const mail = completion.choices[0].message.content
+
+  if (!mail) throw new Error('Failed to generate email template')
+
+  try {
+    const parsedResponse = JSON.parse(mail)
+    if (!parsedResponse.subject || !parsedResponse.body)
+      throw new Error('Invalid template format: missing subject or body')
+
+    return {
+      subject: parsedResponse.subject,
+      body: parsedResponse.body
+    }
+  } catch {
+    throw new Error('Failed to parse email template as JSON')
   }
 }

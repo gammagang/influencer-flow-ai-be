@@ -10,7 +10,8 @@ export const discoverCreatorsTool = {
       properties: {
         country: {
           type: 'string',
-          description: 'Country code (e.g., "US", "IN", "UK")'
+          description:
+            'Country filter - ONLY include this parameter if user explicitly mentions a specific country or location. Do not include by default.'
         },
         tier: {
           type: 'array',

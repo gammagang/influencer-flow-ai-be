@@ -18,7 +18,7 @@ import {
   updateCampaignCreatorState,
   getCampaignCreatorsWithDetails
 } from '@/api/campaign-creator'
-import { generateUserOutreachEmail } from '@/api/outreach-email'
+import { generateEmailTemplate } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 
 interface CampaignResult {
@@ -501,21 +501,32 @@ export async function executeBulkOutreach(
         }
       }
 
-      // Generate sample email template
+      // Generate sample email template with placeholders
       const emailData = {
         subject: `Partnership Opportunity with ${campaign.name}`,
         recipient: {
-          name: creatorDetails.creator_name,
+          name: '{{CREATOR_NAME}}',
           email: 'sample@example.com'
         },
         campaignDetails: creatorDetails.campaign_description || campaign.description || '',
         brandName: 'Your Brand', // TODO: Get from company details
         campaignName: campaign.name,
         personalizedMessage: params.personalizedMessage || '',
-        negotiationLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${firstCreator.id}`
+        negotiationLink: '{{NEGOTIATION_LINK}}'
       }
 
-      const sampleEmail = await generateUserOutreachEmail(emailData)
+      const templateEmail = await generateEmailTemplate(emailData)
+
+      // Create a sample with actual creator data for preview
+      const sampleEmail = {
+        subject: templateEmail.subject.replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name),
+        body: templateEmail.body
+          .replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name)
+          .replace(
+            /{{NEGOTIATION_LINK}}/g,
+            `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${firstCreator.id}`
+          )
+      }
 
       return {
         success: true,
@@ -535,13 +546,52 @@ export async function executeBulkOutreach(
       }
     }
 
-    // Execute bulk outreach
+    // Execute bulk outreach using template-based approach
     const results = []
     const errors = []
 
+    // Generate a single email template using AI (only once)
+    let emailTemplate = null
+    try {
+      // Use the first creator's data to generate a template
+      const firstCreator = eligibleCreators[0]
+      const firstCreatorDetails = await getCampaignCreatorWithCampaignDetails(
+        firstCreator.id.toString()
+      )
+
+      if (!firstCreatorDetails) {
+        return {
+          success: false,
+          error: 'Failed to get creator details for template generation'
+        }
+      }
+
+      const templateData = {
+        subject: `Partnership Opportunity with ${campaign.name}`,
+        recipient: {
+          name: '{{CREATOR_NAME}}', // Placeholder
+          email: 'template@example.com'
+        },
+        campaignDetails: firstCreatorDetails.campaign_description || campaign.description || '',
+        brandName: 'Your Brand',
+        campaignName: campaign.name,
+        personalizedMessage: params.personalizedMessage || '',
+        negotiationLink: '{{NEGOTIATION_LINK}}' // Placeholder
+      }
+
+      emailTemplate = await generateEmailTemplate(templateData)
+      log.info('Generated email template successfully')
+    } catch (error) {
+      log.error('Error generating email template:', error)
+      return {
+        success: false,
+        error: 'Failed to generate email template'
+      }
+    }
+
+    // Now process all creators using the template
     for (const creatorLink of eligibleCreators) {
       try {
-        // Get detailed creator information
         const creatorDetails = await getCampaignCreatorWithCampaignDetails(
           creatorLink.id.toString()
         )
@@ -553,41 +603,35 @@ export async function executeBulkOutreach(
           continue
         }
 
-        // Prepare email data
-        const emailData = {
-          subject: `Partnership Opportunity with ${campaign.name}`,
-          recipient: {
-            name: creatorDetails.creator_name,
-            email: creatorDetails.creator_email || 'gammagang100x@gmail.com' // Fallback email
-          },
-          campaignDetails: creatorDetails.campaign_description || campaign.description || '',
-          brandName: 'Your Brand', // TODO: Get from company details
-          campaignName: campaign.name,
-          personalizedMessage: params.personalizedMessage || '',
-          negotiationLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${creatorLink.id}`
-        }
+        // Substitute placeholders in the template
+        const personalizedSubject = emailTemplate.subject.replace(
+          /{{CREATOR_NAME}}/g,
+          creatorDetails.creator_name
+        )
+        const personalizedBody = emailTemplate.body
+          .replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name)
+          .replace(
+            /{{NEGOTIATION_LINK}}/g,
+            `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${creatorLink.id}`
+          )
 
-        // Generate personalized email using AI
-        const generatedEmail = await generateUserOutreachEmail(emailData)
-
-        // Send the email
+        // Send the personalized email
         const emailResult = await sendOutreachEmailProgrammatic({
-          to: emailData.recipient.email,
-          subject: generatedEmail.subject,
-          text: generatedEmail.body,
-          html: generatedEmail.body.replace(/\n/g, '<br>')
+          to: creatorDetails.creator_email || 'gammagang100x@gmail.com',
+          subject: personalizedSubject,
+          text: personalizedBody,
+          html: personalizedBody.replace(/\n/g, '<br>')
         })
 
         if (emailResult.success) {
-          // Update creator state to 'outreached'
           await updateCampaignCreatorState(creatorLink.id.toString(), 'outreached')
 
           results.push({
             creatorId: creatorLink.id,
             creatorName: creatorDetails.creator_name,
-            creatorEmail: emailData.recipient.email,
+            creatorEmail: creatorDetails.creator_email || 'gammagang100x@gmail.com',
             status: 'sent',
-            emailSubject: generatedEmail.subject
+            emailSubject: personalizedSubject
           })
 
           log.info(`Successfully sent outreach email to creator ${creatorDetails.creator_name}`)

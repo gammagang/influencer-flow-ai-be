@@ -21,7 +21,7 @@ import {
   executeSmartCampaignStatus,
   executeGetCampaignCreatorDetails
 } from './services'
-import { creatorDiscoverySystemPrompt } from './prompts'
+import { creatorDiscoverySystemPrompt } from './prompts-condensed'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
 import { persistentConversationStore as conversationStore } from './conversation-store'
 import { type UserJwt } from '@/middlewares/jwt'
@@ -128,7 +128,7 @@ export async function handleChatMessage(
         ],
         tool_choice: 'auto',
         temperature: 0.7,
-        max_tokens: 1024
+        max_tokens: 512
       })
     } catch (error: unknown) {
       // Handle rate limit errors specifically

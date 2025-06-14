@@ -115,13 +115,15 @@ Assistant: Use list_campaigns tool to retrieve and display all campaigns.
 - When creators are found, say "I found [total] creators" where [total] is from the tool result data.total field
 
 **Creator Search Parameters:**
-- country: "US", "IN", "UK", etc.
+- country: Only include if user explicitly mentions a specific country (e.g., "creators in the US", "Indian influencers")
 - tier: "nano", "micro", "macro", "celebrity", etc.
 - category: "Fashion", "Beauty", "Tech", "Gaming", "Food", "Travel"
 - gender: "male", "female", "other"
 - language: ["en", "es", "fr"]
 - engagement_rate: ["1-2", "2-3", "3-5", "5+"]
 - bio: Keywords to search in creator descriptions
+
+**IMPORTANT**: Do NOT include country parameter unless the user specifically mentions a geographic location or country in their request.
 
 **Campaign Parameters:**
 - name: Campaign name (required)
