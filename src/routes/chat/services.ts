@@ -289,30 +289,37 @@ export async function executeAddCreatorsToCampaign(
   try {
     log.info('Adding creators to campaign:', params)
 
-    // Verify user has access to the campaign
-    const company = await findCompanyByUserId(user.sub)
-    if (!company) {
+    // Use the helper function to validate campaign access
+    const validation = await validateCampaignAccess(params.campaignId, user, 'add creators')
+
+    if (!validation.success) {
+      if ('needsCampaignSelection' in validation) {
+        // Return campaign selection needed
+        return {
+          success: true,
+          needsCampaignSelection: true,
+          data: {
+            stepType: 'intermediary',
+            message: validation.message,
+            availableCampaigns: validation.campaigns,
+            totalCampaigns: validation.campaigns.length,
+            requestedAction: 'add_creators',
+            requestedParams: {
+              creatorHandles: params.creatorHandles,
+              assignedBudget: params.assignedBudget,
+              notes: params.notes
+            }
+          }
+        }
+      }
+      // Return error
       return {
         success: false,
-        error: 'Company not found for user'
+        error: validation.error
       }
     }
 
-    // Get campaign to verify it exists and belongs to user's company
-    const campaign = await getCampaignById(params.campaignId)
-    if (!campaign) {
-      return {
-        success: false,
-        error: 'Campaign not found'
-      }
-    }
-
-    if (campaign.company_id !== company.id.toString()) {
-      return {
-        success: false,
-        error: 'You do not have access to this campaign'
-      }
-    }
+    const { campaign } = validation
 
     // Get conversation history to find discovered creators
     const conversation = persistentConversationStore.getConversation(conversationId)
@@ -322,6 +329,8 @@ export async function executeAddCreatorsToCampaign(
         error: 'Conversation not found. Please discover creators first.'
       }
     }
+
+    // ...existing code...
 
     // Find the most recent discover_creators result in conversation
     const messages = persistentConversationStore.getMessages(conversationId)
@@ -453,24 +462,53 @@ export async function executeBulkOutreach(
     personalizedMessage?: string
     confirmTemplate?: boolean // Whether to show template confirmation first (defaults to true for safety)
   },
-  _user: UserJwt,
+  user: UserJwt,
   conversationId: string
 ) {
   try {
     // Default to showing template confirmation for safety
     const shouldConfirmTemplate = params.confirmTemplate !== false
 
+    // Use the helper function to validate campaign access
+    const validation = await validateCampaignAccess(
+      params.campaignId,
+      user,
+      'send bulk outreach emails'
+    )
+
+    if (!validation.success) {
+      if ('needsCampaignSelection' in validation) {
+        // Return campaign selection needed
+        return {
+          success: true,
+          needsCampaignSelection: true,
+          data: {
+            stepType: 'intermediary',
+            message: validation.message,
+            availableCampaigns: validation.campaigns,
+            totalCampaigns: validation.campaigns.length,
+            requestedAction: 'bulk_outreach',
+            requestedParams: {
+              creatorIds: params.creatorIds,
+              personalizedMessage: params.personalizedMessage,
+              confirmTemplate: params.confirmTemplate
+            }
+          }
+        }
+      }
+      // Return error
+      return {
+        success: false,
+        error: validation.error
+      }
+    }
+
+    const { campaign } = validation
+
     // Define cache key once for both preview and send operations
     const templateCacheKey = `bulkOutreachTemplate_${params.campaignId}_${conversationId}`
 
-    // Validate campaign exists and get details
-    const campaign = await getCampaignById(params.campaignId)
-    if (!campaign) {
-      return {
-        success: false,
-        error: `Campaign with ID ${params.campaignId} not found`
-      }
-    }
+    // ...existing code...
 
     // Get all campaign-creator links for this campaign
     const campaignCreatorLinks = await getCampaignCreators({
@@ -749,40 +787,41 @@ export async function executeDeleteCampaign(
       }
     }
 
-    if (!params.campaignId) {
+    // Use the helper function to validate campaign access
+    const validation = await validateCampaignAccess(params.campaignId, user, 'delete')
+
+    if (!validation.success) {
+      if ('needsCampaignSelection' in validation) {
+        // Return campaign selection needed
+        return {
+          success: true,
+          needsCampaignSelection: true,
+          data: {
+            stepType: 'intermediary',
+            message: validation.message,
+            availableCampaigns: validation.campaigns,
+            totalCampaigns: validation.campaigns.length,
+            requestedAction: 'delete_campaign',
+            requestedParams: {
+              confirmDelete: params.confirmDelete
+            }
+          }
+        }
+      }
+      // Return error
       return {
         success: false,
-        error: 'Campaign ID is required'
+        error: validation.error
       }
     }
 
-    // Get the user's company
-    const company = await findCompanyByUserId(user.sub)
-    if (!company?.id) {
-      return {
-        success: false,
-        error: 'No company found for the user'
-      }
-    }
-
-    // Verify campaign exists and belongs to user's company
-    const campaign = await getCampaignById(params.campaignId)
-    if (!campaign) {
-      return {
-        success: false,
-        error: 'Campaign not found'
-      }
-    }
-
-    if (campaign.company_id.toString() !== company.id.toString()) {
-      return {
-        success: false,
-        error: 'Unauthorized: Campaign does not belong to your company'
-      }
-    }
+    const { company } = validation
 
     // Delete the campaign
-    const result = await deleteCampaign(params.campaignId, company.id.toString())
+    const result = await deleteCampaign(
+      params.campaignId,
+      (company as unknown as { id: string }).id.toString()
+    )
 
     log.info(`Successfully deleted campaign ${params.campaignId}`, {
       campaignName: result.deletedCampaign.name,
@@ -837,6 +876,7 @@ export async function executeSmartCampaignStatus(user: UserJwt) {
       return {
         success: true,
         data: {
+          stepType: 'intermediary',
           type: 'no_campaigns' as const,
           message: "You don't have any campaigns yet. Would you like me to help you create one?",
           campaigns: [],
@@ -956,31 +996,40 @@ export async function executeGetCampaignCreatorDetails(
       userId: user.sub
     })
 
-    // Get the user's company
-    const company = await findCompanyByUserId(user.sub || '')
-    if (!company?.id) {
+    // Use the helper function to validate campaign access
+    const validation = await validateCampaignAccess(
+      params.campaignId,
+      user,
+      'get campaign creator details'
+    )
+
+    if (!validation.success) {
+      if ('needsCampaignSelection' in validation) {
+        // Return campaign selection needed
+        return {
+          success: true,
+          needsCampaignSelection: true,
+          data: {
+            stepType: 'intermediary',
+            message: validation.message,
+            availableCampaigns: validation.campaigns,
+            totalCampaigns: validation.campaigns.length,
+            requestedAction: 'get_campaign_creator_details',
+            requestedParams: {
+              status: params.status,
+              limit: params.limit
+            }
+          }
+        }
+      }
+      // Return error
       return {
         success: false,
-        error: 'No company found for the user'
+        error: validation.error
       }
     }
 
-    // Get campaign to verify ownership
-    const campaign = await getCampaignById(params.campaignId)
-    if (!campaign) {
-      return {
-        success: false,
-        error: `Campaign with ID ${params.campaignId} not found`
-      }
-    }
-
-    // Verify that the campaign belongs to the user's company
-    if (campaign.company_id.toString() !== company.id.toString()) {
-      return {
-        success: false,
-        error: 'You do not have permission to access this campaign'
-      }
-    }
+    const { campaign } = validation
 
     // Get all creators in the campaign with full creator details
     const creatorsResult = await getCampaignCreatorsWithDetails({
@@ -988,6 +1037,8 @@ export async function executeGetCampaignCreatorDetails(
       status: params.status,
       limit: params.limit || 1000
     })
+
+    // ...existing code...
 
     // Transform creator data for detailed view
     const detailedCreators = creatorsResult.map((creator) => ({
@@ -1044,6 +1095,222 @@ export async function executeGetCampaignCreatorDetails(
     return {
       success: false,
       error: `Failed to get campaign creator details. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Types for campaign validation
+interface CampaignValidationSuccess {
+  success: true
+  campaign: Record<string, unknown>
+  company: Record<string, unknown>
+}
+
+interface CampaignValidationNeedsSelection {
+  success: false
+  needsCampaignSelection: true
+  campaigns: Array<{
+    id: string
+    name: string
+    description: string | null
+    startDate: string
+    endDate: string
+    status: string
+    totalBudget: string | null
+  }>
+  message: string
+  stepType: 'intermediary'
+}
+
+interface CampaignValidationError {
+  success: false
+  error: string
+}
+
+type CampaignValidationResult =
+  | CampaignValidationSuccess
+  | CampaignValidationNeedsSelection
+  | CampaignValidationError
+
+// Helper function to validate campaign access and provide campaign selection if needed
+async function validateCampaignAccess(
+  campaignId: string | undefined,
+  user: UserJwt,
+  actionName: string
+): Promise<CampaignValidationResult> {
+  try {
+    // Get user's company
+    const company = await findCompanyByUserId(user.sub)
+    if (!company?.id) {
+      return {
+        success: false,
+        error: 'No company found for the user'
+      }
+    }
+
+    // If no campaign ID provided, get available campaigns for selection
+    if (!campaignId || campaignId.trim() === '') {
+      log.info(`No campaign ID provided for ${actionName}, fetching available campaigns`)
+
+      const campaignsResult = await executeListCampaigns(user)
+      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+        return {
+          success: false,
+          error: 'Failed to retrieve available campaigns'
+        }
+      }
+
+      const campaigns = campaignsResult.data.campaigns
+
+      if (campaigns.length === 0) {
+        return {
+          success: false,
+          needsCampaignSelection: true,
+          campaigns: [],
+          message: `To ${actionName}, you need a campaign first. Would you like me to help you create one?`,
+          stepType: 'intermediary'
+        }
+      }
+
+      if (campaigns.length === 1) {
+        // Auto-select the only available campaign
+        const campaign = await getCampaignById(campaigns[0].id.toString())
+        if (!campaign) {
+          return {
+            success: false,
+            error: 'Failed to retrieve campaign details'
+          }
+        }
+
+        log.info(`Auto-selected the only available campaign: ${campaign.name}`)
+        return {
+          success: true,
+          campaign: campaign as unknown as Record<string, unknown>,
+          company: company as unknown as Record<string, unknown>
+        }
+      }
+
+      // Multiple campaigns available - user needs to choose
+      return {
+        success: false,
+        needsCampaignSelection: true,
+        campaigns: campaigns.map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+          description: c.description,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          totalBudget: c.totalBudget?.toString() || null
+        })),
+        message: `You have ${campaigns.length} campaigns. Please specify which campaign you'd like to ${actionName}:`,
+        stepType: 'intermediary' as const
+      }
+    }
+
+    // Campaign ID provided - validate it's a valid number first
+    const campaignIdNum = parseInt(campaignId, 10)
+    if (isNaN(campaignIdNum) || campaignIdNum <= 0) {
+      // Invalid campaign ID format - show available campaigns instead of error
+      log.info(`Invalid campaign ID format: ${campaignId}, showing available campaigns`)
+
+      const campaignsResult = await executeListCampaigns(user)
+      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+        return {
+          success: false,
+          error: 'Failed to retrieve available campaigns'
+        }
+      }
+
+      const campaigns = campaignsResult.data.campaigns
+
+      if (campaigns.length === 0) {
+        return {
+          success: false,
+          needsCampaignSelection: true,
+          stepType: 'intermediary' as const,
+          campaigns: [],
+          message: `Invalid campaign ID "${campaignId}". You don't have any campaigns yet. Would you like me to help you create one?`
+        }
+      }
+
+      return {
+        success: false,
+        needsCampaignSelection: true,
+        stepType: 'intermediary' as const,
+        campaigns: campaigns.map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+          description: c.description,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          totalBudget: c.totalBudget?.toString() || null
+        })),
+        message: `Here are your available campaigns to ${actionName}:`
+      }
+    }
+
+    // Now validate it exists and user has access
+    const campaign = await getCampaignById(campaignId)
+    if (!campaign) {
+      // Campaign not found - show available campaigns instead of just error
+      log.info(`Campaign ID ${campaignId} not found, showing available campaigns`)
+
+      const campaignsResult = await executeListCampaigns(user)
+      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+        return {
+          success: false,
+          error: 'Failed to retrieve available campaigns'
+        }
+      }
+
+      const campaigns = campaignsResult.data.campaigns
+
+      if (campaigns.length === 0) {
+        return {
+          success: false,
+          needsCampaignSelection: true,
+          stepType: 'intermediary' as const,
+          campaigns: [],
+          message: `Campaign with ID ${campaignId} not found. You don't have any campaigns yet. Would you like me to help you create one?`
+        }
+      }
+
+      return {
+        success: false,
+        needsCampaignSelection: true,
+        stepType: 'intermediary' as const,
+        campaigns: campaigns.map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+          description: c.description,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          totalBudget: c.totalBudget?.toString() || null
+        })),
+        message: `Here are your available campaigns to ${actionName}:`
+      }
+    }
+
+    if (campaign.company_id.toString() !== company.id.toString()) {
+      return {
+        success: false,
+        error: 'You do not have access to this campaign'
+      }
+    }
+
+    return {
+      success: true,
+      campaign: campaign as unknown as Record<string, unknown>,
+      company: company as unknown as Record<string, unknown>
+    }
+  } catch (error) {
+    log.error(`Error in validateCampaignAccess for ${actionName}:`, error)
+    return {
+      success: false,
+      error: `Failed to validate campaign access: ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

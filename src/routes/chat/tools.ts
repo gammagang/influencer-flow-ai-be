@@ -34,31 +34,10 @@ export const discoverCreatorsTool = {
         category: {
           type: 'array',
           items: {
-            type: 'string',
-            enum: [
-              'Fashion',
-              'Beauty',
-              'Tech',
-              'Gaming',
-              'Food',
-              'Travel',
-              'Fitness',
-              'Lifestyle',
-              'Music',
-              'Art',
-              'Education',
-              'Business',
-              'Health',
-              'Sports',
-              'Entertainment',
-              'News',
-              'Comedy',
-              'DIY',
-              'Automotive',
-              'Pets'
-            ]
+            type: 'string'
           },
-          description: 'Content categories. Choose from predefined categories for best results.'
+          description:
+            'Content categories (e.g., ["Books", "Travel", "Fashion"]). Can be any category string - the API will match against available categories.'
         },
         er: {
           type: 'array',

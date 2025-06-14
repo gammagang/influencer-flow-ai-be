@@ -29,7 +29,7 @@ import { type ChatResponse, type CreateCampaignChatParams, type ToolCallResult }
 // Enhanced model configuration based on Groq documentation
 const GROQ_MODELS = {
   // Primary tool-calling model - optimized for function calling and structured data
-  TOOL_USE: 'llama-3.3-70b-versatile',
+  TOOL_USE: 'llama-3.1-8b-instant',
   // Faster model for final response generation
   RESPONSE: 'llama-3.1-8b-instant',
   // Alternative models for fallback

@@ -143,6 +143,15 @@ export async function deleteCampaign(
 
   // Start transaction to ensure atomicity
   const result = await sql.begin(async (sql) => {
+    // First, delete all negotiation_attempt records that reference campaign_creator records for this campaign
+    await sql`
+      DELETE FROM negotiation_attempt
+      WHERE campaign_creator_id IN (
+        SELECT id FROM campaign_creator
+        WHERE campaign_id = ${campaignId}
+      )
+    `
+
     // Delete campaign_creator mappings for this campaign
     await sql`
       DELETE FROM campaign_creator 
