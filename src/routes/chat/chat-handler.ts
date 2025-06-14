@@ -114,17 +114,17 @@ export async function handleChatMessage(
     let completion
     try {
       completion = await groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         messages,
         tools: [
-          discoverCreatorsTool,
-          createCampaignTool,
-          listCampaignsTool,
           addCreatorsToCampaignTool,
           bulkOutreachTool,
+          createCampaignTool,
           deleteCampaignTool,
-          smartCampaignStatusTool,
-          getCampaignCreatorDetailsTool
+          discoverCreatorsTool,
+          getCampaignCreatorDetailsTool,
+          listCampaignsTool,
+          smartCampaignStatusTool
         ],
         tool_choice: 'auto',
         temperature: 0.7,
