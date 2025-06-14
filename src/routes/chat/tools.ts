@@ -4,54 +4,97 @@ export const discoverCreatorsTool = {
   function: {
     name: 'discover_creators',
     description:
-      'Search and discover creators/influencers based on various criteria like location, follower count, engagement rate, category, etc.',
+      'Search and discover creators/influencers based on various criteria like location, follower count, engagement rate, category, etc. Use this tool to find creators that match specific campaign requirements.',
     parameters: {
       type: 'object',
       properties: {
         country: {
           type: 'string',
           description:
-            'Country filter - ONLY include this parameter if user explicitly mentions a specific country or location. Do not include by default.'
+            'Country filter - ONLY include this parameter if user explicitly mentions a specific country or location. Use ISO country codes when possible (e.g., "US", "UK", "CA").'
         },
         tier: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+            enum: ['early', 'nano', 'micro', 'lower-mid', 'upper-mid', 'macro', 'mega', 'celebrity']
+          },
           description:
             'Follower count tiers: "early" (<1k), "nano" (1k-10k), "micro" (10k-100k), "lower-mid" (100k-250k), "upper-mid" (250k-500k), "macro" (500k-1M), "mega" (1M-5M), "celebrity" (>5M)'
         },
         language: {
           type: 'array',
-          items: { type: 'string' },
-          description: 'Languages spoken by creators (e.g., ["en", "es", "fr"])'
+          items: {
+            type: 'string',
+            pattern: '^[a-z]{2}$'
+          },
+          description:
+            'Languages spoken by creators using ISO 639-1 codes (e.g., ["en", "es", "fr", "de"])'
         },
         category: {
           type: 'array',
-          items: { type: 'string' },
-          description:
-            'Content categories (e.g., ["Fashion", "Beauty", "Tech", "Gaming", "Food", "Travel"])'
+          items: {
+            type: 'string',
+            enum: [
+              'Fashion',
+              'Beauty',
+              'Tech',
+              'Gaming',
+              'Food',
+              'Travel',
+              'Fitness',
+              'Lifestyle',
+              'Music',
+              'Art',
+              'Education',
+              'Business',
+              'Health',
+              'Sports',
+              'Entertainment',
+              'News',
+              'Comedy',
+              'DIY',
+              'Automotive',
+              'Pets'
+            ]
+          },
+          description: 'Content categories. Choose from predefined categories for best results.'
         },
         er: {
           type: 'array',
-          items: { type: 'string' },
-          description: 'Engagement rate ranges (e.g., ["1-2", "2-3", "3-5", "5+"])'
+          items: {
+            type: 'string',
+            enum: ['0-1', '1-2', '2-3', '3-5', '5+']
+          },
+          description: 'Engagement rate ranges as percentages'
         },
         gender: {
           type: 'string',
-          description: 'Gender filter: "male", "female", or "other"'
+          enum: ['male', 'female', 'other'],
+          description: 'Gender filter'
         },
         bio: {
           type: 'string',
-          description: 'Keywords to search in creator bio/description'
+          maxLength: 200,
+          description:
+            'Keywords to search in creator bio/description. Keep concise for better results.'
         },
         limit: {
-          type: 'number',
+          type: 'integer',
           description:
             'Number of creators to return (default: 12, max: 50). Must be a number, not a string.',
           minimum: 1,
           maximum: 50,
           default: 12
+        },
+        skip: {
+          type: 'integer',
+          description: 'Number of results to skip for pagination',
+          minimum: 0,
+          default: 0
         }
-      }
+      },
+      additionalProperties: false
     }
   }
 }
@@ -62,36 +105,50 @@ export const createCampaignTool = {
   function: {
     name: 'create_campaign',
     description:
-      'Create a new influencer marketing campaign ONLY when you have collected ALL required information from the user: name, start date, end date, and deliverables. Do not call this function until you have confirmed all required details with the user.',
+      'Create a new influencer marketing campaign ONLY when you have collected ALL required information from the user: name, start date, end date, and deliverables. Do not call this function until you have confirmed all required details with the user. Validate dates to ensure start date is before end date and both are in the future.',
     parameters: {
       type: 'object',
       properties: {
         name: {
           type: 'string',
-          description: 'Campaign name (required) - must be provided by user'
+          minLength: 3,
+          maxLength: 100,
+          description:
+            'Campaign name (required) - must be provided by user. Should be descriptive and unique.'
         },
         description: {
           type: 'string',
-          description: 'Campaign description explaining the goals and objectives (optional)'
+          maxLength: 1000,
+          description:
+            'Campaign description explaining the goals and objectives (optional but recommended)'
         },
         startDate: {
           type: 'string',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
           description:
-            'Campaign start date in YYYY-MM-DD format (required) - must be provided by user'
+            'Campaign start date in YYYY-MM-DD format (required) - must be provided by user and should be in the future'
         },
         endDate: {
           type: 'string',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
           description:
-            'Campaign end date in YYYY-MM-DD format (required) - must be provided by user'
+            'Campaign end date in YYYY-MM-DD format (required) - must be provided by user and should be after start date'
         },
         deliverables: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100
+          },
+          minItems: 1,
+          maxItems: 20,
           description:
-            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel"])'
+            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel", "YouTube video"])'
         }
       },
-      required: ['name', 'startDate', 'endDate', 'deliverables']
+      required: ['name', 'startDate', 'endDate', 'deliverables'],
+      additionalProperties: false
     }
   }
 }
