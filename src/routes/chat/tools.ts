@@ -222,3 +222,18 @@ export const getCampaignCreatorStatusTool = {
     }
   }
 }
+
+// Function calling tool definition for smart campaign status
+export const smartCampaignStatusTool = {
+  type: 'function' as const,
+  function: {
+    name: 'smart_campaign_status',
+    description:
+      'Intelligently handle campaign status requests. Shows list of campaigns if multiple exist, gets status directly for single campaign, or suggests creating one if none exist. Use this when user asks about "campaign status" without specifying a campaign ID.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
+  }
+}

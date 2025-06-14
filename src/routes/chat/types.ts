@@ -80,6 +80,22 @@ export interface ToolCallResult {
       }>
       totalAdded?: number
       errors?: string[]
+      // For smart campaign status
+      type?: 'no_campaigns' | 'single_campaign_status' | 'multiple_campaigns'
+      message?: string
+      totalCampaigns?: number
+      status?: {
+        campaignId: string
+        campaignName: string
+        totalCreators: number
+        statusCounts: Record<string, number>
+        statusBreakdown: Array<{
+          stage: string
+          count: number
+          percentage: number
+        }>
+        lastUpdated: string
+      }
     }
     error?: string
   }

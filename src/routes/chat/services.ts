@@ -805,3 +805,80 @@ export async function executeGetCampaignCreatorStatus(
     }
   }
 }
+
+// Function to execute smart campaign status check (handles no campaigns, single campaign, multiple campaigns)
+export async function executeSmartCampaignStatus(user: UserJwt) {
+  try {
+    log.info('Executing smart campaign status check for user:', user.sub)
+
+    // First, get all campaigns for the user
+    const campaignsResult = await executeListCampaigns(user)
+
+    if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+      return {
+        success: false,
+        error: 'Failed to retrieve campaigns'
+      }
+    }
+
+    const campaigns = campaignsResult.data.campaigns
+
+    // No campaigns: Suggest creating one
+    if (campaigns.length === 0) {
+      return {
+        success: true,
+        data: {
+          type: 'no_campaigns' as const,
+          message: "You don't have any campaigns yet. Would you like me to help you create one?",
+          campaigns: [],
+          totalCampaigns: 0
+        }
+      }
+    }
+
+    // Single campaign: Get status directly
+    if (campaigns.length === 1) {
+      const statusResult = await executeGetCampaignCreatorStatus(
+        { campaignId: campaigns[0].id.toString() },
+        user
+      )
+
+      return {
+        success: true,
+        data: {
+          type: 'single_campaign_status' as const,
+          campaign: campaigns[0],
+          status: statusResult.success ? statusResult.data : null,
+          totalCampaigns: 1
+        }
+      }
+    }
+
+    // Multiple campaigns: Show selection interface
+    return {
+      success: true,
+      data: {
+        type: 'multiple_campaigns' as const,
+        message: "You have multiple campaigns. Which campaign's status would you like to check?",
+        campaigns: campaigns.map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+          description: c.description,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          createdAt: c.createdAt,
+          deliverables: c.deliverables,
+          totalBudget: c.totalBudget?.toString() || null
+        })),
+        totalCampaigns: campaigns.length
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeSmartCampaignStatus:', error)
+    return {
+      success: false,
+      error: `Failed to check campaign status. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}

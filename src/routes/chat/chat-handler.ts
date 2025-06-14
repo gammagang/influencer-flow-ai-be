@@ -8,7 +8,8 @@ import {
   addCreatorsToCampaignTool,
   bulkOutreachTool,
   deleteCampaignTool,
-  getCampaignCreatorStatusTool
+  getCampaignCreatorStatusTool,
+  smartCampaignStatusTool
 } from './tools'
 import {
   executeDiscoverCreators,
@@ -17,7 +18,8 @@ import {
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
   executeDeleteCampaign,
-  executeGetCampaignCreatorStatus
+  executeGetCampaignCreatorStatus,
+  executeSmartCampaignStatus
 } from './services'
 import { creatorDiscoverySystemPrompt } from './prompts'
 import { type ToolCallResult, type ChatResponse, type CreateCampaignChatParams } from './types'
@@ -121,7 +123,8 @@ export async function handleChatMessage(
           addCreatorsToCampaignTool,
           bulkOutreachTool,
           deleteCampaignTool,
-          getCampaignCreatorStatusTool
+          getCampaignCreatorStatusTool,
+          smartCampaignStatusTool
         ],
         tool_choice: 'auto',
         temperature: 0.7,
@@ -515,6 +518,65 @@ export async function handleChatMessage(
               JSON.stringify({
                 success: false,
                 error: 'Failed to get campaign creator status'
+              }),
+              undefined,
+              toolCall.id
+            )
+          }
+        } else if (toolCall.function.name === 'smart_campaign_status') {
+          try {
+            log.info('Executing smart_campaign_status')
+
+            const result = await executeSmartCampaignStatus(user)
+
+            // Create a compatible result object
+            const compatibleResult = {
+              success: result.success,
+              data: result.success
+                ? {
+                    type: result.data?.type,
+                    message: result.data?.message,
+                    campaigns: result.data?.campaigns || [],
+                    campaign: result.data?.campaign,
+                    status: result.data?.status || undefined,
+                    totalCampaigns: result.data?.totalCampaigns
+                  }
+                : undefined,
+              error: result.error
+            }
+
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result: compatibleResult
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify(result),
+              undefined,
+              toolCall.id
+            )
+          } catch (error) {
+            log.error('Error executing smart campaign status:', error)
+            toolResults.push({
+              toolCallId: toolCall.id,
+              functionName: toolCall.function.name,
+              result: {
+                success: false,
+                error: 'Failed to get campaign status'
+              }
+            })
+
+            // Store tool result in conversation
+            conversationStore.addMessage(
+              currentConversationId,
+              'tool',
+              JSON.stringify({
+                success: false,
+                error: 'Failed to get campaign status'
               }),
               undefined,
               toolCall.id
