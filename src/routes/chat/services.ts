@@ -673,7 +673,7 @@ export async function executeBulkOutreach(
           .replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name)
           .replace(
             /{{NEGOTIATION_LINK}}/g,
-            `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agent-call?id=${creatorLink.id}`
+            `${process.env.FRONTEND_URL || 'http://localhost:8080'}/agent-call?id=${creatorLink.id}`
           )
 
         // Send the personalized email
