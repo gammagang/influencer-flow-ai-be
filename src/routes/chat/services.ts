@@ -15,7 +15,8 @@ import { persistentConversationStore } from './conversation-store'
 import {
   getCampaignCreators,
   getCampaignCreatorWithCampaignDetails,
-  updateCampaignCreatorState
+  updateCampaignCreatorState,
+  getCampaignCreatorsWithDetails
 } from '@/api/campaign-creator'
 import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
@@ -699,112 +700,9 @@ export async function executeDeleteCampaign(
   }
 }
 
-// Function to execute getting campaign creator lifecycle status
-export async function executeGetCampaignCreatorStatus(
-  params: { campaignId: string },
-  user: UserJwt
-) {
-  try {
-    log.info('Executing getCampaignCreatorStatus:', {
-      campaignId: params.campaignId,
-      userId: user.sub
-    })
-
-    // Get the user's company
-    const company = await findCompanyByUserId(user.sub || '')
-    if (!company?.id) {
-      return {
-        success: false,
-        error: 'No company found for the user'
-      }
-    }
-
-    // Get campaign to verify ownership
-    const campaign = await getCampaignById(params.campaignId)
-    if (!campaign) {
-      return {
-        success: false,
-        error: `Campaign with ID ${params.campaignId} not found`
-      }
-    }
-
-    // Verify that the campaign belongs to the user's company
-    if (campaign.company_id.toString() !== company.id.toString()) {
-      return {
-        success: false,
-        error: 'You do not have permission to access this campaign'
-      }
-    }
-
-    // Get all creators in the campaign
-    const creators = await getCampaignCreators({
-      campaignId: params.campaignId,
-      creatorId: undefined,
-      status: undefined,
-      page: 1,
-      limit: 1000 // Get all creators
-    })
-
-    // Group creators by their current state and calculate counts
-    const statusCounts = creators.items.reduce((acc: Record<string, number>, creator) => {
-      const status = creator.current_state || 'unknown'
-      acc[status] = (acc[status] || 0) + 1
-      return acc
-    }, {})
-
-    // Calculate total creators
-    const totalCreators = creators.items.length
-
-    // Define lifecycle stages in order
-    const lifecycleStages = [
-      'discovered',
-      'outreached',
-      'call complete',
-      'waiting for contract',
-      'waiting for signature',
-      'onboarded',
-      'fulfilled'
-    ]
-
-    // Build detailed status breakdown
-    const statusBreakdown = lifecycleStages.map((stage) => ({
-      stage,
-      count: statusCounts[stage] || 0,
-      percentage:
-        totalCreators > 0 ? Math.round(((statusCounts[stage] || 0) / totalCreators) * 100) : 0
-    }))
-
-    // Add any other statuses not in the standard lifecycle
-    Object.keys(statusCounts).forEach((status) => {
-      if (!lifecycleStages.includes(status)) {
-        statusBreakdown.push({
-          stage: status,
-          count: statusCounts[status],
-          percentage:
-            totalCreators > 0 ? Math.round((statusCounts[status] / totalCreators) * 100) : 0
-        })
-      }
-    })
-
-    return {
-      success: true,
-      data: {
-        campaignId: params.campaignId,
-        campaignName: campaign.name,
-        totalCreators,
-        statusCounts,
-        statusBreakdown,
-        lastUpdated: new Date().toISOString()
-      }
-    }
-  } catch (error) {
-    log.error('Error in executeGetCampaignCreatorStatus:', error)
-    return {
-      success: false,
-      error: `Failed to get campaign creator status. ${error instanceof Error ? error.message : 'Unknown error'}`
-    }
-  }
-}
+// This function has been removed as it was redundant with smart_campaign_status
+// Use smart_campaign_status for campaign status overview
+// Use get_campaign_creator_details for individual creator information
 
 // Function to execute smart campaign status check (handles no campaigns, single campaign, multiple campaigns)
 export async function executeSmartCampaignStatus(user: UserJwt) {
@@ -836,19 +734,67 @@ export async function executeSmartCampaignStatus(user: UserJwt) {
       }
     }
 
-    // Single campaign: Get status directly
+    // Single campaign: Get status directly using the more efficient approach
     if (campaigns.length === 1) {
-      const statusResult = await executeGetCampaignCreatorStatus(
-        { campaignId: campaigns[0].id.toString() },
-        user
-      )
+      // Get campaign creators for status calculation
+      const creators = await getCampaignCreators({
+        campaignId: campaigns[0].id.toString(),
+        creatorId: undefined,
+        status: undefined,
+        page: 1,
+        limit: 1000
+      })
+
+      // Calculate status counts inline for efficiency
+      const statusCounts = creators.items.reduce((acc: Record<string, number>, creator) => {
+        const status = creator.current_state || 'unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+
+      const totalCreators = creators.items.length
+      const lifecycleStages = [
+        'discovered',
+        'outreached',
+        'call complete',
+        'waiting for contract',
+        'waiting for signature',
+        'onboarded',
+        'fulfilled'
+      ]
+
+      const statusBreakdown = lifecycleStages.map((stage) => ({
+        stage,
+        count: statusCounts[stage] || 0,
+        percentage:
+          totalCreators > 0 ? Math.round(((statusCounts[stage] || 0) / totalCreators) * 100) : 0
+      }))
+
+      // Add other statuses
+      Object.keys(statusCounts).forEach((status) => {
+        if (!lifecycleStages.includes(status)) {
+          statusBreakdown.push({
+            stage: status,
+            count: statusCounts[status],
+            percentage:
+              totalCreators > 0 ? Math.round((statusCounts[status] / totalCreators) * 100) : 0
+          })
+        }
+      })
 
       return {
         success: true,
         data: {
           type: 'single_campaign_status' as const,
           campaign: campaigns[0],
-          status: statusResult.success ? statusResult.data : null,
+          status: {
+            campaignId: campaigns[0].id.toString(),
+            campaignName: campaigns[0].name,
+            totalCreators,
+            statusCounts,
+            statusBreakdown,
+            lastUpdated: new Date().toISOString()
+          },
           totalCampaigns: 1
         }
       }
@@ -879,6 +825,114 @@ export async function executeSmartCampaignStatus(user: UserJwt) {
     return {
       success: false,
       error: `Failed to check campaign status. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute getting detailed creator statuses in a campaign with filtering
+export async function executeGetCampaignCreatorDetails(
+  params: {
+    campaignId: string
+    status?: string | string[] // Filter by specific status(es)
+    limit?: number
+  },
+  user: UserJwt
+) {
+  try {
+    log.info('Executing getCampaignCreatorDetails:', {
+      campaignId: params.campaignId,
+      status: params.status,
+      userId: user.sub
+    })
+
+    // Get the user's company
+    const company = await findCompanyByUserId(user.sub || '')
+    if (!company?.id) {
+      return {
+        success: false,
+        error: 'No company found for the user'
+      }
+    }
+
+    // Get campaign to verify ownership
+    const campaign = await getCampaignById(params.campaignId)
+    if (!campaign) {
+      return {
+        success: false,
+        error: `Campaign with ID ${params.campaignId} not found`
+      }
+    }
+
+    // Verify that the campaign belongs to the user's company
+    if (campaign.company_id.toString() !== company.id.toString()) {
+      return {
+        success: false,
+        error: 'You do not have permission to access this campaign'
+      }
+    }
+
+    // Get all creators in the campaign with full creator details
+    const creatorsResult = await getCampaignCreatorsWithDetails({
+      campaignId: params.campaignId,
+      status: params.status,
+      limit: params.limit || 1000
+    })
+
+    // Transform creator data for detailed view
+    const detailedCreators = creatorsResult.map((creator) => ({
+      id: creator.cc_id?.toString() || '',
+      creatorId: creator.creator_id?.toString() || '',
+      handle: creator.creator_handle || 'Unknown',
+      name: creator.creator_name || creator.creator_handle || 'Unknown',
+      platform: creator.creator_platform || 'instagram',
+      category: creator.creator_category || null,
+      followersCount: creator.followers_count || 0,
+      tier: creator.creator_tier || mapFollowerCountToTier(creator.followers_count || 0),
+      engagement_rate: creator.creator_engagement_rate || 0,
+      location: creator.creator_location || null,
+      country: creator.creator_country || null,
+      gender: creator.creator_gender || null,
+      language: creator.creator_language || null,
+      profileImageUrl: creator.profile_image_url || null,
+      profileUrl: creator.profile_url || '',
+      interests: creator.interests || [],
+      qualityScore: creator.quality_score || null,
+      currentState: creator.campaign_creator_current_state || 'unknown',
+      assignedBudget: creator.assigned_budget || 0,
+      notes: creator.cc_notes || null,
+      createdAt: creator.cc_created_at,
+      updatedAt: creator.cc_updated_at
+    }))
+
+    // Group by status for summary
+    const statusSummary = detailedCreators.reduce((acc: Record<string, number>, creator) => {
+      const status = creator.currentState
+      acc[status] = (acc[status] || 0) + 1
+      return acc
+    }, {})
+
+    return {
+      success: true,
+      data: {
+        campaignId: params.campaignId,
+        campaignName: campaign.name,
+        totalCreators: creatorsResult.length,
+        filteredCount: detailedCreators.length,
+        appliedFilters: params.status
+          ? Array.isArray(params.status)
+            ? params.status
+            : [params.status]
+          : [],
+        statusSummary,
+        creators: detailedCreators,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeGetCampaignCreatorDetails:', error)
+    return {
+      success: false,
+      error: `Failed to get campaign creator details. ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

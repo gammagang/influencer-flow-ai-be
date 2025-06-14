@@ -44,6 +44,13 @@ export interface ToolCallResult {
         profileUrl: string
         interests: string[]
         qualityScore: number | null | undefined
+        // For detailed creator information
+        creatorId?: string
+        currentState?: string
+        assignedBudget?: number
+        notes?: string | null
+        createdAt?: string
+        updatedAt?: string
       }>
       total?: number
       searchParams?: DiscoverCreatorParams
@@ -96,6 +103,11 @@ export interface ToolCallResult {
         }>
         lastUpdated: string
       }
+      // For campaign creator details
+      filteredCount?: number
+      appliedFilters?: string[]
+      statusSummary?: Record<string, number>
+      lastUpdated?: string
     }
     error?: string
   }

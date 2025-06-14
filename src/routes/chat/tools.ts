@@ -203,26 +203,6 @@ export const deleteCampaignTool = {
   }
 }
 
-// Function calling tool definition for getting campaign creator lifecycle status
-export const getCampaignCreatorStatusTool = {
-  type: 'function' as const,
-  function: {
-    name: 'get_campaign_creator_status',
-    description:
-      'Get the lifecycle status overview for all creators in a specific campaign. Shows counts and percentages for each status stage like discovered, outreached, onboarded, etc.',
-    parameters: {
-      type: 'object',
-      properties: {
-        campaignId: {
-          type: 'string',
-          description: 'The ID of the campaign to get creator status for (required)'
-        }
-      },
-      required: ['campaignId']
-    }
-  }
-}
-
 // Function calling tool definition for smart campaign status
 export const smartCampaignStatusTool = {
   type: 'function' as const,
@@ -234,6 +214,37 @@ export const smartCampaignStatusTool = {
       type: 'object',
       properties: {},
       required: []
+    }
+  }
+}
+
+// Function calling tool definition for getting detailed campaign creator statuses
+export const getCampaignCreatorDetailsTool = {
+  type: 'function' as const,
+  function: {
+    name: 'get_campaign_creator_details',
+    description:
+      'Get detailed information about all creators in a specific campaign, with optional filtering by status. Shows individual creator progress, contact info, and current state in the campaign lifecycle.',
+    parameters: {
+      type: 'object',
+      properties: {
+        campaignId: {
+          type: 'string',
+          description: 'The ID of the campaign to get creator details for (required)'
+        },
+        status: {
+          oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+          description:
+            'Filter creators by status. Can be a single status or array of statuses. Common values: "discovered", "outreached", "call_initiated", "negotiating", "deal_finalized", "contract_sent", "contract_signed", "content_delivered", "payment_processed"'
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of creators to return (optional, default: 1000)',
+          minimum: 1,
+          maximum: 1000
+        }
+      },
+      required: ['campaignId']
     }
   }
 }
