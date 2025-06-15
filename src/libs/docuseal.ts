@@ -29,9 +29,9 @@ const FieldNames = {
   brandSigningDate: 'brandSigningDate',
 
   // Creator fields (formerly Influencer)
-  creatorName: 'creatorName',
-  creatorInstaHandle: 'creatorInstaHandle',
-  creatorEmail: 'creatorEmail',
+  // creatorName: 'creatorName',
+  // creatorInstaHandle: 'creatorInstaHandle',
+  // creatorEmail: 'creatorEmail',
   creatorSignature: 'creatorSignature',
   creatorSigningDate: 'creatorSigningDate'
 } as const
@@ -86,35 +86,39 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
 
   // Creator-specific fields
   const creatorFields: DocuSealField[] = [
-    { name: FieldNames.creatorName, default_value: contractData.creator.name },
-    { name: FieldNames.creatorInstaHandle, default_value: contractData.creator.instaHandle },
-    { name: FieldNames.creatorEmail, default_value: contractData.creator.email }
+    // { name: FieldNames.creatorName, default_value: contractData.creator.name },
+    // { name: FieldNames.creatorInstaHandle, default_value: contractData.creator.instaHandle },
+    // { name: FieldNames.creatorEmail, default_value: contractData.creator.email }
   ]
+
+  log.debug(' fields:', { brandFields, creatorFields })
 
   const submitters = [
     // Brand submitter
     {
       name: contractData.brand.contactPerson,
-      email: contractData.brand.email,
+      // email: contractData.brand.email,
+      email: 'tech@madhukm.com', //TODO: MOCK -> Change later
       send_email: true,
-      role: 'Brand',
-      fields: [
-        ...brandFields,
-        // Show creator fields as read-only to brand
-        ...creatorFields.map((field) => ({ ...field, readonly: true }))
-      ]
+      role: 'Brand'
+      // fields: [
+      //   ...brandFields,
+      //   // Show creator fields as read-only to brand
+      //   ...creatorFields.map((field) => ({ ...field, readonly: true }))
+      // ]
     },
     // Creator submitter
     {
       name: contractData.creator.name,
-      email: contractData.creator.email,
+      // email: contractData.creator.email,
+      email: 'lopabi4912@ethsms.com', //TODO: MOCK -> Change later
       send_email: true,
-      role: 'Creator',
-      fields: [
-        // Show brand fields as read-only to creator
-        ...brandFields.map((field) => ({ ...field, readonly: true })),
-        ...creatorFields
-      ]
+      role: 'Creator'
+      // fields: [
+      //   // Show brand fields as read-only to creator
+      //   ...brandFields.map((field) => ({ ...field, readonly: true })),
+      //   ...creatorFields
+      // ]
     }
   ]
 
@@ -123,6 +127,7 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
   // Create submission with brand and creator as submitters
   const submission = await docuseal.createSubmission({
     template_id: DOCUSEAL_TEMPLATE_ID,
+    send_email: true,
     order: 'preserved',
     submitters
   })

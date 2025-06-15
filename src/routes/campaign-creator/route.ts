@@ -8,6 +8,7 @@ import {
 } from '@/api/campaign-creator'
 import { getCampaignById } from '@/api/campaign'
 import { getCompanyById, findCompanyByUserId } from '@/api/company'
+import { createContract } from '@/api/contract'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -379,13 +380,28 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     // Send the contract via DocuSeal
     const submission = await sendContractViaEmail(contractData)
 
+    // Create a new contract entity with the submission data
+    const contract = await createContract({
+      campaign_creator_id: parseInt(ccMappingId, 10),
+      status: 'sent',
+      docusealSubmission: submission
+    })
+
     // Update mapping to record that contract was sent
     await updateCampaignCreatorState(ccMappingId, 'waiting for signature')
 
-    SuccessResponse.send({ res, data: submission })
-  } catch (error: any) {
+    // Return both the submission and the created contract
+    SuccessResponse.send({
+      res,
+      data: {
+        submission,
+        contract
+      }
+    })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Contract generation error:', error)
-    throw new Error(error.message || 'Failed to send contract via DocuSeal')
+    throw new Error(errorMessage || 'Failed to send contract via DocuSeal')
   }
 })
 
