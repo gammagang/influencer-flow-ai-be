@@ -163,7 +163,7 @@ export async function updateContractMeta(id: number | string, metaData: Record<s
  */
 export async function markContractSigned(id: number | string, signedBy: 'brand' | 'creator') {
   try {
-    const fieldName = signedBy === 'brand' ? 'signed_by_brand_at' : 'signed_by_creator_at'
+    // const fieldName = signedBy === 'brand' ? 'signed_by_brand_at' : 'signed_by_creator_at'
 
     let query
     if (signedBy === 'brand') {
