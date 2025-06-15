@@ -88,7 +88,7 @@ campaignsRouter.get('/:id', async (req: Request, res: Response) => {
   SuccessResponse.send({ res, data: campaign })
 })
 
-// // Update Campaign
+// Add creator to campaign
 // campaignsRouter.put('/:id', async (req: Request, res: Response) => {
 //   const campaignId = req.params.id
 //   const validatedBody = validateRequest(UpdateCampaignReqSchema, req.body, req.path)
