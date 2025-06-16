@@ -850,12 +850,8 @@ export async function executeDeleteCampaign(
   }
 }
 
-// This function has been removed as it was redundant with smart_campaign_status
-// Use smart_campaign_status for campaign status overview
-// Use get_campaign_creator_details for individual creator information
-
-// Function to execute smart campaign status check (handles no campaigns, single campaign, multiple campaigns)
-export async function executeSmartCampaignStatus(user: UserJwt) {
+// Function to execute campaign status check (handles no campaigns, single campaign, multiple campaigns)
+export async function executeCampaignStatus(user: UserJwt) {
   try {
     log.info('Executing smart campaign status check for user:', user.sub)
 
@@ -972,7 +968,7 @@ export async function executeSmartCampaignStatus(user: UserJwt) {
       }
     }
   } catch (error) {
-    log.error('Error in executeSmartCampaignStatus:', error)
+    log.error('Error in executeCampaignStatus:', error)
     return {
       success: false,
       error: `Failed to check campaign status. ${error instanceof Error ? error.message : 'Unknown error'}`

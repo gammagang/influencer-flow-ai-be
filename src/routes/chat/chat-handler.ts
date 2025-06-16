@@ -12,7 +12,7 @@ import {
   executeDiscoverCreators,
   executeGetCampaignCreatorDetails,
   executeListCampaigns,
-  executeSmartCampaignStatus
+  executeCampaignStatus
 } from './services'
 import {
   addCreatorsToCampaignTool,
@@ -357,7 +357,7 @@ export async function handleChatMessage(
             }
             case 'smart_campaign_status': {
               log.info('Executing smart_campaign_status')
-              result = await executeSmartCampaignStatus(user)
+              result = await executeCampaignStatus(user)
               break
             }
             case 'get_campaign_creator_details': {
