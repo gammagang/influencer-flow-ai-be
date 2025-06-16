@@ -84,7 +84,7 @@ export const createCampaignTool = {
   function: {
     name: 'create_campaign',
     description:
-      'Create a new influencer marketing campaign ONLY when you have collected ALL required information from the user: name, start date, end date, and deliverables. Do not call this function until you have confirmed all required details with the user. Validate dates to ensure start date is before end date and both are in the future.',
+      'IMPORTANT: DO NOT CALL THIS FUNCTION if the user just said "create campaign" without providing specific details. You must first ask for campaign name, start date, end date, and deliverables through conversation. Only call this function after you have collected ALL information through the mandatory progressive disclosure flow. NEVER use default, example, or placeholder values.',
     parameters: {
       type: 'object',
       properties: {
@@ -126,8 +126,7 @@ export const createCampaignTool = {
             'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel", "YouTube video"])'
         }
       },
-      required: ['name', 'startDate', 'endDate', 'deliverables'],
-      additionalProperties: false
+      required: ['name', 'startDate', 'endDate', 'deliverables']
     }
   }
 }
