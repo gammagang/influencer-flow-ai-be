@@ -16,7 +16,8 @@ import {
   getCampaignCreators,
   getCampaignCreatorWithCampaignDetails,
   updateCampaignCreatorState,
-  getCampaignCreatorsWithDetails
+  getCampaignCreatorsWithDetails,
+  type CampaignCreatorDetails
 } from '@/api/campaign-creator'
 import { generateEmailTemplate } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
@@ -978,112 +979,79 @@ export async function executeCampaignStatus(user: UserJwt) {
 
 // Function to execute getting detailed creator statuses in a campaign with filtering
 export async function executeGetCampaignCreatorDetails(
-  params: {
-    campaignId: string
-    status?: string | string[] // Filter by specific status(es)
+  user: UserJwt,
+  params?: {
+    status?: string
     limit?: number
-  },
-  user: UserJwt
+  }
 ) {
   try {
-    log.info('Executing getCampaignCreatorDetails:', {
-      campaignId: params.campaignId,
-      status: params.status,
+    // Handle case where params might be null/undefined
+    const safeParams = params || {}
+
+    log.info('executeGetCampaignCreatorDetails called with params:', {
+      status: safeParams.status,
+      statusType: typeof safeParams.status,
+      statusLength: safeParams.status?.length,
+      limit: safeParams.limit,
       userId: user.sub
     })
 
-    // Use the helper function to validate campaign access
-    const validation = await validateCampaignAccess(
-      params.campaignId,
-      user,
-      'get campaign creator details'
-    )
+    // Get all campaigns for the user
+    const campaignsResult = await executeListCampaigns(user)
 
-    if (!validation.success) {
-      if ('needsCampaignSelection' in validation) {
-        // Return campaign selection needed
-        return {
-          success: true,
-          needsCampaignSelection: true,
-          data: {
-            stepType: 'intermediary',
-            message: validation.message,
-            availableCampaigns: validation.campaigns,
-            totalCampaigns: validation.campaigns.length,
-            requestedAction: 'get_campaign_creator_details',
-            requestedParams: {
-              status: params.status,
-              limit: params.limit
-            }
-          }
-        }
-      }
-      // Return error
+    if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
       return {
         success: false,
-        error: validation.error
+        error: 'Failed to retrieve campaigns'
       }
     }
 
-    const { campaign } = validation
+    const campaigns = campaignsResult.data.campaigns
 
-    // Get all creators in the campaign with full creator details
-    const creatorsResult = await getCampaignCreatorsWithDetails({
-      campaignId: params.campaignId,
-      status: params.status,
-      limit: params.limit || 1000
-    })
+    // No campaigns: Suggest creating one
+    if (campaigns.length === 0) {
+      return {
+        success: true,
+        data: {
+          stepType: 'intermediary',
+          type: 'no_campaigns' as const,
+          message: "You don't have any campaigns yet. Would you like me to help you create one?",
+          campaigns: [],
+          totalCampaigns: 0
+        }
+      }
+    }
 
-    // ...existing code...
+    // Single campaign: Get creator details directly
+    if (campaigns.length === 1) {
+      return await processCreatorDetails(campaigns[0].id.toString(), campaigns[0], safeParams)
+    }
 
-    // Transform creator data for detailed view
-    const detailedCreators = creatorsResult.map((creator) => ({
-      id: creator.cc_id?.toString() || '',
-      creatorId: creator.creator_id?.toString() || '',
-      handle: creator.creator_handle || 'Unknown',
-      name: creator.creator_name || creator.creator_handle || 'Unknown',
-      platform: creator.creator_platform || 'instagram',
-      category: creator.creator_category || null,
-      followersCount: creator.followers_count || 0,
-      tier: creator.creator_tier || mapFollowerCountToTier(creator.followers_count || 0),
-      engagement_rate: creator.creator_engagement_rate || 0,
-      location: creator.creator_location || null,
-      country: creator.creator_country || null,
-      gender: creator.creator_gender || null,
-      language: creator.creator_language || null,
-      profileImageUrl: creator.profile_image_url || null,
-      profileUrl: creator.profile_url || '',
-      interests: creator.interests || [],
-      qualityScore: creator.quality_score || null,
-      currentState: creator.campaign_creator_current_state || 'unknown',
-      assignedBudget: creator.assigned_budget || 0,
-      notes: creator.cc_notes || null,
-      createdAt: creator.cc_created_at,
-      updatedAt: creator.cc_updated_at
-    }))
-
-    // Group by status for summary
-    const statusSummary = detailedCreators.reduce((acc: Record<string, number>, creator) => {
-      const status = creator.currentState
-      acc[status] = (acc[status] || 0) + 1
-      return acc
-    }, {})
-
+    // Multiple campaigns: Show selection interface
     return {
       success: true,
       data: {
-        campaignId: params.campaignId,
-        campaignName: campaign.name,
-        totalCreators: creatorsResult.length,
-        filteredCount: detailedCreators.length,
-        appliedFilters: params.status
-          ? Array.isArray(params.status)
-            ? params.status
-            : [params.status]
-          : [],
-        statusSummary,
-        creators: detailedCreators,
-        lastUpdated: new Date().toISOString()
+        type: 'multiple_campaigns' as const,
+        message:
+          "You have multiple campaigns. Which campaign's creator details would you like to see?",
+        campaigns: campaigns.map((c) => ({
+          id: c.id.toString(),
+          name: c.name,
+          description: c.description,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          status: c.status,
+          createdAt: c.createdAt,
+          deliverables: c.deliverables,
+          totalBudget: c.totalBudget?.toString() || null
+        })),
+        totalCampaigns: campaigns.length,
+        requestedAction: 'get_campaign_creator_details',
+        requestedParams: {
+          status: safeParams.status,
+          limit: safeParams.limit
+        }
       }
     }
   } catch (error) {
@@ -1091,6 +1059,81 @@ export async function executeGetCampaignCreatorDetails(
     return {
       success: false,
       error: `Failed to get campaign creator details. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Helper function to process creator details for a specific campaign
+async function processCreatorDetails(
+  campaignId: string,
+  campaign: Record<string, unknown>,
+  params: { status?: string; limit?: number }
+) {
+  // For general "get creator status" requests, don't apply any status filter
+  // Only filter when user explicitly requests specific statuses
+  const shouldApplyStatusFilter = params.status && params.status.trim() !== ''
+
+  log.info('Processing creator details:', {
+    campaignId,
+    campaignName: campaign.name,
+    requestedStatus: params.status,
+    shouldApplyStatusFilter,
+    limit: params.limit
+  })
+
+  // Get all creators in the campaign with full creator details
+  const creatorsResult = await getCampaignCreatorsWithDetails({
+    campaignId: campaignId,
+    status: shouldApplyStatusFilter ? params.status : undefined,
+    limit: params.limit || 1000
+  })
+
+  log.info('Retrieved creators result:', {
+    campaignId,
+    resultLength: creatorsResult?.length || 0,
+    resultType: typeof creatorsResult,
+    hasResult: !!creatorsResult
+  })
+
+  if (!creatorsResult || creatorsResult.length === 0) {
+    return {
+      success: true,
+      data: {
+        type: 'single_campaign_creator_details' as const,
+        campaignName: campaign.name as string,
+        statusSummary: {},
+        creators: [],
+        lastUpdated: new Date().toISOString(),
+        message: shouldApplyStatusFilter
+          ? `No creators found with the requested status: ${params.status}.`
+          : `No creators found in this campaign.`
+      }
+    }
+  }
+
+  // Transform creator data - only essential fields for UI
+  const detailedCreators = creatorsResult.map((creator: CampaignCreatorDetails) => ({
+    id: creator.cc_id?.toString() || '',
+    name: creator.creator_name || creator.creator_handle || 'Unknown',
+    handle: creator.creator_handle || creator.creator_name || 'Unknown',
+    currentState: creator.campaign_creator_current_state || 'unknown'
+  }))
+
+  // Group by status for summary
+  const statusSummary = detailedCreators.reduce((acc: Record<string, number>, creator) => {
+    const status = creator.currentState || 'unknown'
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {})
+
+  return {
+    success: true,
+    data: {
+      type: 'single_campaign_creator_details' as const,
+      campaignName: campaign.name,
+      statusSummary,
+      creators: detailedCreators,
+      lastUpdated: new Date().toISOString()
     }
   }
 }

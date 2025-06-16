@@ -363,8 +363,8 @@ export async function handleChatMessage(
             case 'get_campaign_creator_details': {
               log.info('Executing get_campaign_creator_details with params:', parsedArgs)
               result = await executeGetCampaignCreatorDetails(
-                parsedArgs as { campaignId: string; status?: string | string[]; limit?: number },
-                user
+                user,
+                parsedArgs as { status?: string; limit?: number }
               )
               break
             }

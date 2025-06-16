@@ -263,18 +263,14 @@ export const getCampaignCreatorDetailsTool = {
   function: {
     name: 'get_campaign_creator_details',
     description:
-      'Get detailed information about all creators in a specific campaign, with optional filtering by status. Shows individual creator progress, contact info, and current state in the campaign lifecycle.',
+      'Get detailed information about all creators in campaigns with their current status and progress. Automatically handles campaign selection (single campaign auto-selected, multiple campaigns show selection). Shows individual creator progress, contact info, and current state in the campaign lifecycle. When user asks for "creator status", call this with NO parameters to get all creators.',
     parameters: {
       type: 'object',
       properties: {
-        campaignId: {
-          type: 'string',
-          description: 'The ID of the campaign to get creator details for (required)'
-        },
         status: {
-          oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+          type: 'string',
           description:
-            'Filter creators by status. Can be a single status or array of statuses. Common values: "discovered", "outreached", "call_initiated", "negotiating", "deal_finalized", "contract_sent", "contract_signed", "content_delivered", "payment_processed"'
+            'Optional: Filter creators by specific status only when user explicitly requests filtering. Common values: "discovered", "outreached", "call_initiated", "negotiating", "deal_finalized", "contract_sent", "contract_signed", "content_delivered", "payment_processed". IMPORTANT: Leave empty or omit this parameter to show ALL creators with their current statuses (recommended for general status requests).'
         },
         limit: {
           type: 'number',
@@ -283,7 +279,7 @@ export const getCampaignCreatorDetailsTool = {
           maximum: 1000
         }
       },
-      required: ['campaignId']
+      required: [] // No required parameters - auto-selects campaign and shows all creators by default
     }
   }
 }
