@@ -4,6 +4,7 @@ import { SuccessResponse } from '@/libs/success-response'
 import { ChatRequestSchema } from './types'
 import { handleChatMessage } from './chat-handler'
 import { persistentConversationStore as conversationStore } from './conversation-store'
+import { creatorDiscoverySystemPrompt } from './prompts-condensed'
 
 const chatRouter = Router()
 
@@ -22,7 +23,7 @@ chatRouter.post('/message', async (req: Request, res: Response) => {
     // Get or create user's conversation (each user can only have one)
     const conversation = conversationStore.getOrCreateUserConversation(
       userId,
-      'You are a helpful AI assistant specialized in influencer marketing and campaign management.'
+      creatorDiscoverySystemPrompt
     )
 
     const response = await handleChatMessage(message, req.user, conversation.id)

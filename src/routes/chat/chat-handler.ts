@@ -3,7 +3,7 @@ import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
 import { type UserJwt } from '@/middlewares/jwt'
 import { persistentConversationStore as conversationStore } from './conversation-store'
-import { creatorDiscoverySystemPrompt, finalResponseSystemPrompt } from './prompts-condensed'
+import { finalResponseSystemPrompt } from './prompts-condensed'
 import {
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
@@ -33,7 +33,7 @@ const GROQ_MODELS = {
   // Faster model for final response generation
   RESPONSE: 'llama-3.1-8b-instant',
   // Alternative models for fallback
-  FALLBACK: 'llama-3.1-70b-versatile'
+  FALLBACK: 'llama-3.3-70b-versatile'
 } as const
 
 // Enhanced temperature settings based on Groq best practices
@@ -164,14 +164,10 @@ export async function handleChatMessage(
     // Generate or use existing conversation ID
     const currentConversationId = conversationId || conversationStore.generateConversationId()
 
-    // Get or create conversation
-    let conversation = conversationStore.getConversation(currentConversationId)
+    // Get existing conversation (should already be created by route)
+    const conversation = conversationStore.getConversation(currentConversationId)
     if (!conversation) {
-      conversation = conversationStore.createConversation(
-        currentConversationId,
-        user.sub, // Use user ID from JWT
-        creatorDiscoverySystemPrompt
-      )
+      throw new Error(`Conversation ${currentConversationId} not found`)
     }
 
     // Add user message to conversation
