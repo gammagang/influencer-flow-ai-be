@@ -1152,6 +1152,154 @@ export async function executeGetCampaignCreatorDetails(
   }
 }
 
-// Helper function to process creator details for a specific campaign
-// Note: processCreatorDetails and validateCampaignAccess functions have been moved to /services/core/campaign.ts
-// and are no longer needed here as the refactored functions use the core services directly
+interface CreateCampaignFromProfileParams {
+  name: string
+  description?: string
+  startDate: string
+  endDate: string
+  deliverables: string[]
+  targetAudience?: string
+  campaignGoals?: string[]
+}
+
+// Function to execute campaign creation from brand profile
+export async function executeCreateCampaignFromProfile(
+  params: CreateCampaignFromProfileParams,
+  user: UserJwt
+): Promise<{
+  success: boolean
+  data?: {
+    campaign?: CampaignResult
+    brandInfo?: {
+      companyName: string
+      description?: string
+      category?: string
+      targetAudience?: string
+    }
+  }
+  error?: string
+  message?: string
+}> {
+  try {
+    log.info('Creating campaign from brand profile with params:', params)
+
+    // Step 0: Validate required parameters
+    if (
+      !params.name?.trim() ||
+      !params.startDate?.trim() ||
+      !params.endDate?.trim() ||
+      !params.deliverables?.length ||
+      params.deliverables.some((d) => !d?.trim())
+    ) {
+      return {
+        success: false,
+        error:
+          'Missing required campaign details. Please provide campaign name, start date, end date, and deliverables.'
+      }
+    }
+
+    // Validate dates are not placeholder values
+    if (
+      params.startDate.includes('YYYY') ||
+      params.endDate.includes('YYYY') ||
+      params.startDate.includes('example') ||
+      params.endDate.includes('example') ||
+      params.startDate === '' ||
+      params.endDate === '' ||
+      params.startDate.length < 8 ||
+      params.endDate.length < 8
+    ) {
+      return {
+        success: false,
+        error: 'Please provide actual dates in YYYY-MM-DD format, not placeholder values.'
+      }
+    }
+
+    // Validate name is not a placeholder or empty
+    if (
+      params.name.trim().length < 3 ||
+      params.name.toLowerCase().includes('example') ||
+      params.name.toLowerCase().includes('placeholder') ||
+      params.name.toLowerCase().includes('campaign name') ||
+      params.name.toLowerCase().includes('summer promotion') ||
+      params.name === ''
+    ) {
+      return {
+        success: false,
+        error: 'Please provide an actual campaign name (at least 3 characters), not a placeholder.'
+      }
+    }
+
+    // Validate deliverables are not placeholders
+    const placeholderDeliverables = ['instagram post', 'story', 'reel', 'example']
+    const hasPlaceholderDeliverables = params.deliverables.some(
+      (d) =>
+        placeholderDeliverables.includes(d.toLowerCase().trim()) ||
+        d.toLowerCase().includes('example') ||
+        d.trim() === ''
+    )
+
+    if (hasPlaceholderDeliverables) {
+      return {
+        success: false,
+        error:
+          'Please provide specific deliverables, not placeholder values like "Instagram post" or "Story".'
+      }
+    }
+
+    // Step 1: Get the user's company/brand profile
+    const company = await findCompanyByUserId(user.sub)
+    if (!company) {
+      return {
+        success: false,
+        error:
+          'No brand profile found. Please create a brand profile first before creating campaigns from it.'
+      }
+    }
+
+    // Step 2: Generate campaign description if not provided
+    let campaignDescription = params.description
+    if (!campaignDescription) {
+      // Create a description based on brand profile and campaign details
+      campaignDescription = `${params.name} campaign for ${company.name}${params.targetAudience ? ` targeting ${params.targetAudience}` : ''}${params.campaignGoals ? `. Goals: ${params.campaignGoals.join(', ')}` : ''}.${company.description ? ` ${company.description}` : ''}`
+    }
+
+    // Step 3: Create the campaign using existing function
+    const createCampaignParams: CreateCampaignChatParams = {
+      name: params.name,
+      description: campaignDescription,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      deliverables: params.deliverables
+    }
+
+    const campaignResult = await executeCreateCampaign(createCampaignParams, user)
+
+    if (campaignResult.success) {
+      return {
+        success: true,
+        data: {
+          campaign: campaignResult.data?.campaign,
+          brandInfo: {
+            companyName: company.name,
+            description: company.description || undefined,
+            category: company.category || undefined,
+            targetAudience: params.targetAudience
+          }
+        },
+        message: `Campaign "${params.name}" created successfully using your brand profile for ${company.name}!`
+      }
+    } else {
+      return {
+        success: false,
+        error: campaignResult.error || 'Failed to create campaign from brand profile'
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeCreateCampaignFromProfile:', error)
+    return {
+      success: false,
+      error: `Failed to create campaign from brand profile. ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}

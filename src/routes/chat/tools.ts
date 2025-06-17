@@ -404,3 +404,73 @@ export const getCampaignCreatorDetailsTool = {
     }
   }
 }
+
+// Function calling tool definition for campaign creation from brand profile
+export const createCampaignFromProfileTool = {
+  type: 'function' as const,
+  function: {
+    name: 'create_campaign_from_profile',
+    description:
+      "DO NOT CALL THIS FUNCTION WHEN USER FIRST SAYS 'create campaign from profile'! FIRST RESPONSE MUST BE QUESTIONS TO GATHER INFORMATION! When user says 'create campaign from brand profile', you must respond with questions asking for: 1) Campaign name 2) Start date 3) End date 4) Deliverables. DO NOT call this function until you have received specific answers to all these questions from the user. This tool creates a campaign using the user's existing brand profile to auto-fill brand-related details, but ALL campaign-specific details (name, dates, deliverables) must come from explicit user input through conversation.",
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          minLength: 3,
+          maxLength: 100,
+          description:
+            'Campaign name (required) - must be provided by user, should be specific and descriptive. DO NOT use placeholder or example values.'
+        },
+        description: {
+          type: 'string',
+          maxLength: 500,
+          description:
+            'Campaign description (optional) - if not provided, will be generated based on brand profile and campaign name'
+        },
+        startDate: {
+          type: 'string',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+          description:
+            'Campaign start date in YYYY-MM-DD format (required) - must be provided by user. DO NOT use placeholder or example dates.'
+        },
+        endDate: {
+          type: 'string',
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+          description:
+            'Campaign end date in YYYY-MM-DD format (required) - must be provided by user and should be after start date. DO NOT use placeholder or example dates.'
+        },
+        deliverables: {
+          type: 'array',
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100
+          },
+          minItems: 1,
+          maxItems: 20,
+          description:
+            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel", "YouTube video"]). DO NOT use placeholder values.'
+        },
+        targetAudience: {
+          type: 'string',
+          maxLength: 200,
+          description:
+            "Target audience for this specific campaign (optional) - if not provided, will use brand profile's target audience"
+        },
+        campaignGoals: {
+          type: 'array',
+          items: {
+            type: 'string',
+            minLength: 3,
+            maxLength: 100
+          },
+          maxItems: 10,
+          description:
+            'Specific goals for this campaign (optional) - e.g., ["Increase brand awareness", "Drive website traffic", "Generate leads"]'
+        }
+      },
+      required: ['name', 'startDate', 'endDate', 'deliverables']
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
   executeBulkOutreach,
   executeCreateCampaign,
   executeCreateCampaignFromWebsite,
+  executeCreateCampaignFromProfile,
   executeCreateBrandProfileFromWebsite,
   executeDeleteCampaign,
   executeDiscoverCreators,
@@ -21,6 +22,7 @@ import {
   bulkOutreachTool,
   createCampaignTool,
   createCampaignFromWebsiteTool,
+  createCampaignFromProfileTool,
   createBrandProfileFromWebsiteTool,
   deleteCampaignTool,
   discoverCreatorsTool,
@@ -31,6 +33,17 @@ import {
 import { type ChatResponse, type CreateCampaignChatParams, type ToolCallResult } from './types'
 import { type CreateCampaignFromWebsiteParams } from '@/api/create-campaign-from-website'
 import { type CreateBrandProfileFromWebsiteParams } from '@/api/create-brand-profile-from-website'
+
+// Type for create campaign from profile
+interface CreateCampaignFromProfileParams {
+  name: string
+  description?: string
+  startDate: string
+  endDate: string
+  deliverables: string[]
+  targetAudience?: string
+  campaignGoals?: string[]
+}
 
 // Enhanced model configuration based on Groq documentation
 const GROQ_MODELS = {
@@ -223,6 +236,7 @@ export async function handleChatMessage(
           bulkOutreachTool,
           createCampaignTool,
           createCampaignFromWebsiteTool,
+          createCampaignFromProfileTool,
           createBrandProfileFromWebsiteTool,
           deleteCampaignTool,
           discoverCreatorsTool,
@@ -322,6 +336,38 @@ export async function handleChatMessage(
               log.info('Executing create_campaign_from_website with params:', parsedArgs)
               result = await executeCreateCampaignFromWebsite(
                 parsedArgs as unknown as CreateCampaignFromWebsiteParams,
+                user
+              )
+              break
+            }
+            case 'create_campaign_from_profile': {
+              log.info('Executing create_campaign_from_profile with params:', parsedArgs)
+
+              // Pre-validation to prevent empty/placeholder calls
+              const profileParams = parsedArgs as Record<string, unknown>
+              if (
+                !profileParams.name ||
+                typeof profileParams.name !== 'string' ||
+                !profileParams.name.trim() ||
+                !profileParams.startDate ||
+                typeof profileParams.startDate !== 'string' ||
+                !profileParams.startDate.trim() ||
+                !profileParams.endDate ||
+                typeof profileParams.endDate !== 'string' ||
+                !profileParams.endDate.trim() ||
+                !Array.isArray(profileParams.deliverables) ||
+                profileParams.deliverables.length === 0
+              ) {
+                result = {
+                  success: false,
+                  error:
+                    'Campaign creation requires explicit user input. Please ask the user for campaign name, start date, end date, and deliverables before calling this tool.'
+                }
+                break
+              }
+
+              result = await executeCreateCampaignFromProfile(
+                parsedArgs as unknown as CreateCampaignFromProfileParams,
                 user
               )
               break
