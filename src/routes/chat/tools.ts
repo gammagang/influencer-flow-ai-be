@@ -356,12 +356,18 @@ export const deleteCampaignTool = {
 export const smartCampaignStatusTool = {
   type: 'function' as const,
   function: {
-    name: 'smart_campaign_status',
+    name: 'campaign_status',
     description:
-      'Intelligently handle campaign status requests. Shows list of campaigns if multiple exist, gets status directly for single campaign, or suggests creating one if none exist. Use this when user asks about "campaign status" without specifying a campaign ID.',
+      'Intelligently handle campaign status requests. Shows list of campaigns if multiple exist, gets status directly for single campaign, or suggests creating one if none exist. Can target a specific campaign by ID when user specifies a campaign.',
     parameters: {
       type: 'object',
-      properties: {},
+      properties: {
+        campaignId: {
+          type: 'string',
+          description:
+            'Optional: Specific campaign ID to get status for. If not provided, auto-selects campaign (single campaign auto-selected, multiple campaigns show selection). Use this when user specifies a particular campaign by name or when they previously selected a campaign.'
+        }
+      },
       required: []
     }
   }
@@ -373,10 +379,15 @@ export const getCampaignCreatorDetailsTool = {
   function: {
     name: 'get_campaign_creator_details',
     description:
-      'Get detailed information about all creators in campaigns with their current status and progress. Automatically handles campaign selection (single campaign auto-selected, multiple campaigns show selection). Shows individual creator progress, contact info, and current state in the campaign lifecycle. When user asks for "creator status", call this with NO parameters to get all creators.',
+      'Get detailed information about creators in campaigns with their current status and progress. Can auto-select campaign or target a specific campaign by ID. Shows individual creator progress, contact info, and current state in the campaign lifecycle. When user asks for "creator status" without specifying a campaign, call with NO parameters. When user specifies a campaign (by name or after selection), include the campaignId parameter.',
     parameters: {
       type: 'object',
       properties: {
+        campaignId: {
+          type: 'string',
+          description:
+            'Optional: Specific campaign ID to get creator details for. If not provided, auto-selects campaign (single campaign auto-selected, multiple campaigns show selection). Use this when user specifies a particular campaign by name or when they previously selected a campaign.'
+        },
         status: {
           type: 'string',
           description:

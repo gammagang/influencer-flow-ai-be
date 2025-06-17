@@ -1,23 +1,22 @@
 import { discoverCreator, type DiscoverCreatorParams, mapFollowerCountToTier } from '@/api/discover'
-import {
-  createCampaign,
-  getCampaignsByCompanyId,
-  getCampaignById,
-  deleteCampaign
-} from '@/api/campaign'
+import { createCampaign, getCampaignsByCompanyId, deleteCampaign } from '@/api/campaign'
 import { addCreatorToCampaign } from '@/api/creator'
 import { findCompanyByUserId } from '@/api/company'
 import { CreateCampaignReq } from '@/routes/campaign/validate'
 import { log } from '@/libs/logger'
 import { type CreateCampaignChatParams } from './types'
 import { type UserJwt } from '@/middlewares/jwt'
+import {
+  getCampaignSummary as getCampaignSummaryCore,
+  getCampaignStatus as getCampaignStatusCore,
+  getCampaignCreators as getCampaignCreatorsCore,
+  validateCampaignAccess as validateCampaignAccessCore
+} from '@/services/core/campaign'
 import { persistentConversationStore } from './conversation-store'
 import {
   getCampaignCreators,
   getCampaignCreatorWithCampaignDetails,
-  updateCampaignCreatorState,
-  getCampaignCreatorsWithDetails,
-  type CampaignCreatorDetails
+  updateCampaignCreatorState
 } from '@/api/campaign-creator'
 import { generateEmailTemplate } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
@@ -92,24 +91,19 @@ export async function executeDiscoverCreators(params: DiscoverCreatorParams) {
       searchParams: discoveryParams
     })
 
-    // Transform the results
+    // Transform the results - only include essential fields for the frontend
     const transformedCreators = discoveryResult.objects.map((creator) => ({
       id: creator._id,
       name: creator.full_name || creator.handle,
       handle: creator.handle,
-      platform: creator.connector,
       category: creator.category,
       followersCount: creator.followers,
       tier: mapFollowerCountToTier(creator.followers),
       engagement_rate: creator.engagement / 100,
       location: creator.location,
-      country: creator.country,
-      gender: creator.gender,
-      language: creator.languages?.join(', ') || null,
       profileImageUrl: creator.image_link,
-      profileUrl: creator.handle_link,
-      interests: creator.interests,
-      qualityScore: creator.quality?.profile_quality_score
+      profileUrl: creator.handle_link, // For user to view profile
+      interests: creator.interests?.slice(0, 5) || [] // Limit to first 5 interests
     }))
 
     return {
@@ -405,14 +399,9 @@ export async function executeListCampaigns(user: UserJwt) {
     const transformedCampaigns = campaigns.map((campaign) => ({
       id: campaign.id,
       name: campaign.name,
-      description: campaign.description,
-      startDate: campaign.start_date,
-      endDate: campaign.end_date,
       status: campaign.state,
-      createdAt: campaign.created_at,
-      // Extract deliverables from meta if available
-      deliverables: campaign.meta?.deliverables || [],
-      totalBudget: campaign.meta?.budget?.total || null
+      startDate: campaign.start_date,
+      endDate: campaign.end_date
     }))
 
     return {
@@ -449,37 +438,8 @@ export async function executeAddCreatorsToCampaign(
   try {
     log.info('Adding creators to campaign:', params)
 
-    // Use the helper function to validate campaign access
-    const validation = await validateCampaignAccess(params.campaignId, user, 'add creators')
-
-    if (!validation.success) {
-      if ('needsCampaignSelection' in validation) {
-        // Return campaign selection needed
-        return {
-          success: true,
-          needsCampaignSelection: true,
-          data: {
-            stepType: 'intermediary',
-            message: validation.message,
-            availableCampaigns: validation.campaigns,
-            totalCampaigns: validation.campaigns.length,
-            requestedAction: 'add_creators',
-            requestedParams: {
-              creatorHandles: params.creatorHandles,
-              assignedBudget: params.assignedBudget,
-              notes: params.notes
-            }
-          }
-        }
-      }
-      // Return error
-      return {
-        success: false,
-        error: validation.error
-      }
-    }
-
-    const { campaign } = validation
+    // Validate user has access to this campaign
+    const { campaign } = await validateCampaignAccessCore(params.campaignId, user)
 
     // Get conversation history to find discovered creators
     const conversation = persistentConversationStore.getConversation(conversationId)
@@ -627,41 +587,8 @@ export async function executeBulkOutreach(
     // Default to showing template confirmation for safety
     const shouldConfirmTemplate = params.confirmTemplate !== false
 
-    // Use the helper function to validate campaign access
-    const validation = await validateCampaignAccess(
-      params.campaignId,
-      user,
-      'send bulk outreach emails'
-    )
-
-    if (!validation.success) {
-      if ('needsCampaignSelection' in validation) {
-        // Return campaign selection needed
-        return {
-          success: true,
-          needsCampaignSelection: true,
-          data: {
-            stepType: 'intermediary',
-            message: validation.message,
-            availableCampaigns: validation.campaigns,
-            totalCampaigns: validation.campaigns.length,
-            requestedAction: 'bulk_outreach',
-            requestedParams: {
-              creatorIds: params.creatorIds,
-              personalizedMessage: params.personalizedMessage,
-              confirmTemplate: params.confirmTemplate
-            }
-          }
-        }
-      }
-      // Return error
-      return {
-        success: false,
-        error: validation.error
-      }
-    }
-
-    const { campaign } = validation
+    // Validate user has access to this campaign
+    const { campaign } = await validateCampaignAccessCore(params.campaignId, user)
 
     // Define cache key once for both preview and send operations
     const templateCacheKey = `bulkOutreachTemplate_${params.campaignId}_${conversationId}`
@@ -766,14 +693,7 @@ export async function executeBulkOutreach(
           templatePreview: true,
           campaignName: campaign.name,
           eligibleCreatorsCount: eligibleCreators.length,
-          sampleEmail,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          eligibleCreators: eligibleCreators.map((creator: any) => ({
-            id: creator.id,
-            name: creator.creator?.name || 'Unknown',
-            handle: creator.creator?.meta?.handle || 'Unknown',
-            currentState: creator.current_state
-          }))
+          sampleEmail
         }
       }
     }
@@ -882,11 +802,8 @@ export async function executeBulkOutreach(
           await updateCampaignCreatorState(creatorLink.id.toString(), 'outreached')
 
           results.push({
-            creatorId: creatorLink.id,
             creatorName: creatorDetails.creator_name,
-            creatorEmail: creatorDetails.creator_email || 'gammagang100x@gmail.com',
-            status: 'sent',
-            emailSubject: personalizedSubject
+            status: 'sent'
           })
 
           log.info(`Successfully sent outreach email to creator ${creatorDetails.creator_name}`)
@@ -912,7 +829,6 @@ export async function executeBulkOutreach(
     return {
       success: true,
       data: {
-        campaignId: params.campaignId,
         campaignName: campaign.name,
         totalEligible: eligibleCreators.length,
         totalSent: results.length,
@@ -943,35 +859,8 @@ export async function executeDeleteCampaign(
       }
     }
 
-    // Use the helper function to validate campaign access
-    const validation = await validateCampaignAccess(params.campaignId, user, 'delete')
-
-    if (!validation.success) {
-      if ('needsCampaignSelection' in validation) {
-        // Return campaign selection needed
-        return {
-          success: true,
-          needsCampaignSelection: true,
-          data: {
-            stepType: 'intermediary',
-            message: validation.message,
-            availableCampaigns: validation.campaigns,
-            totalCampaigns: validation.campaigns.length,
-            requestedAction: 'delete_campaign',
-            requestedParams: {
-              confirmDelete: params.confirmDelete
-            }
-          }
-        }
-      }
-      // Return error
-      return {
-        success: false,
-        error: validation.error
-      }
-    }
-
-    const { company } = validation
+    // Validate user has access to this campaign
+    const { company } = await validateCampaignAccessCore(params.campaignId, user)
 
     // Delete the campaign
     const result = await deleteCampaign(
@@ -1007,24 +896,38 @@ export async function executeDeleteCampaign(
 }
 
 // Function to execute campaign status check (handles no campaigns, single campaign, multiple campaigns)
-export async function executeCampaignStatus(user: UserJwt) {
+export async function executeCampaignStatus(user: UserJwt, params?: { campaignId?: string }) {
   try {
-    log.info('Executing smart campaign status check for user:', user.sub)
+    const safeParams = params || {}
 
-    // First, get all campaigns for the user
-    const campaignsResult = await executeListCampaigns(user)
+    log.info('Executing smart campaign status check for user:', {
+      userId: user.sub,
+      campaignId: safeParams.campaignId
+    })
 
-    if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+    // If campaignId is provided, get status for that specific campaign
+    if (safeParams.campaignId) {
+      log.info('Getting status for specific campaign:', { campaignId: safeParams.campaignId })
+
+      const status = await getCampaignStatusCore(safeParams.campaignId, user)
+
       return {
-        success: false,
-        error: 'Failed to retrieve campaigns'
+        success: true,
+        data: {
+          type: 'single_campaign_status' as const,
+          campaignName: status.campaignName,
+          totalCreators: status.totalCreators,
+          statusSummary: status.statusCounts,
+          lastUpdated: status.lastUpdated
+        }
       }
     }
 
-    const campaigns = campaignsResult.data.campaigns
+    // Get campaign summary when no specific campaign is requested
+    const summary = await getCampaignSummaryCore(user)
 
     // No campaigns: Suggest creating one
-    if (campaigns.length === 0) {
+    if (summary.totalCampaigns === 0) {
       return {
         success: true,
         data: {
@@ -1037,25 +940,11 @@ export async function executeCampaignStatus(user: UserJwt) {
       }
     }
 
-    // Single campaign: Get status directly using the more efficient approach
-    if (campaigns.length === 1) {
-      // Get campaign creators for status calculation
-      const creators = await getCampaignCreators({
-        campaignId: campaigns[0].id.toString(),
-        creatorId: undefined,
-        status: undefined,
-        page: 1,
-        limit: 1000
-      })
+    // Single campaign: Get status directly
+    if (summary.totalCampaigns === 1) {
+      const singleCampaign = summary.campaigns[0]
+      const status = await getCampaignStatusCore(singleCampaign.id, user)
 
-      // Calculate status counts inline for efficiency
-      const statusCounts = creators.items.reduce((acc: Record<string, number>, creator) => {
-        const status = creator.current_state || 'unknown'
-        acc[status] = (acc[status] || 0) + 1
-        return acc
-      }, {})
-
-      const totalCreators = creators.items.length
       const lifecycleStages = [
         'discovered',
         'outreached',
@@ -1068,19 +957,23 @@ export async function executeCampaignStatus(user: UserJwt) {
 
       const statusBreakdown = lifecycleStages.map((stage) => ({
         stage,
-        count: statusCounts[stage] || 0,
+        count: status.statusCounts[stage] || 0,
         percentage:
-          totalCreators > 0 ? Math.round(((statusCounts[stage] || 0) / totalCreators) * 100) : 0
+          status.totalCreators > 0
+            ? Math.round(((status.statusCounts[stage] || 0) / status.totalCreators) * 100)
+            : 0
       }))
 
       // Add other statuses
-      Object.keys(statusCounts).forEach((status) => {
-        if (!lifecycleStages.includes(status)) {
+      Object.keys(status.statusCounts).forEach((statusKey) => {
+        if (!lifecycleStages.includes(statusKey)) {
           statusBreakdown.push({
-            stage: status,
-            count: statusCounts[status],
+            stage: statusKey,
+            count: status.statusCounts[statusKey],
             percentage:
-              totalCreators > 0 ? Math.round((statusCounts[status] / totalCreators) * 100) : 0
+              status.totalCreators > 0
+                ? Math.round((status.statusCounts[statusKey] / status.totalCreators) * 100)
+                : 0
           })
         }
       })
@@ -1089,16 +982,10 @@ export async function executeCampaignStatus(user: UserJwt) {
         success: true,
         data: {
           type: 'single_campaign_status' as const,
-          campaign: campaigns[0],
-          status: {
-            campaignId: campaigns[0].id.toString(),
-            campaignName: campaigns[0].name,
-            totalCreators,
-            statusCounts,
-            statusBreakdown,
-            lastUpdated: new Date().toISOString()
-          },
-          totalCampaigns: 1
+          campaignName: singleCampaign.name,
+          totalCreators: status.totalCreators,
+          statusSummary: status.statusCounts,
+          lastUpdated: status.lastUpdated
         }
       }
     }
@@ -1109,18 +996,12 @@ export async function executeCampaignStatus(user: UserJwt) {
       data: {
         type: 'multiple_campaigns' as const,
         message: "You have multiple campaigns. Which campaign's status would you like to check?",
-        campaigns: campaigns.map((c) => ({
-          id: c.id.toString(),
+        campaigns: summary.campaigns.map((c) => ({
+          id: c.id,
           name: c.name,
-          description: c.description,
-          startDate: c.startDate,
-          endDate: c.endDate,
-          status: c.status,
-          createdAt: c.createdAt,
-          deliverables: c.deliverables,
-          totalBudget: c.totalBudget?.toString() || null
+          status: c.status
         })),
-        totalCampaigns: campaigns.length
+        totalCampaigns: summary.totalCampaigns
       }
     }
   } catch (error) {
@@ -1136,6 +1017,7 @@ export async function executeCampaignStatus(user: UserJwt) {
 export async function executeGetCampaignCreatorDetails(
   user: UserJwt,
   params?: {
+    campaignId?: string
     status?: string
     limit?: number
   }
@@ -1145,6 +1027,7 @@ export async function executeGetCampaignCreatorDetails(
     const safeParams = params || {}
 
     log.info('executeGetCampaignCreatorDetails called with params:', {
+      campaignId: safeParams.campaignId,
       status: safeParams.status,
       statusType: typeof safeParams.status,
       statusLength: safeParams.status?.length,
@@ -1152,20 +1035,44 @@ export async function executeGetCampaignCreatorDetails(
       userId: user.sub
     })
 
-    // Get all campaigns for the user
-    const campaignsResult = await executeListCampaigns(user)
+    // If campaignId is provided, directly process that specific campaign
+    if (safeParams.campaignId) {
+      log.info('Processing specific campaign:', { campaignId: safeParams.campaignId })
 
-    if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
+      const creators = await getCampaignCreatorsCore(safeParams.campaignId, user, {
+        status: safeParams.status,
+        limit: safeParams.limit
+      })
+
+      // Group by status for summary
+      const statusSummary = creators.reduce((acc: Record<string, number>, creator) => {
+        const status = creator.status || 'unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+
       return {
-        success: false,
-        error: 'Failed to retrieve campaigns'
+        success: true,
+        data: {
+          type: 'single_campaign_creator_details' as const,
+          campaignName: 'Campaign', // We'd need to get this from the campaign data
+          statusSummary,
+          creators: creators.map((creator) => ({
+            id: creator.id,
+            name: creator.name,
+            handle: creator.handle,
+            currentState: creator.status
+          })),
+          lastUpdated: new Date().toISOString()
+        }
       }
     }
 
-    const campaigns = campaignsResult.data.campaigns
+    // Get campaign summary when no specific campaign is requested
+    const summary = await getCampaignSummaryCore(user)
 
     // No campaigns: Suggest creating one
-    if (campaigns.length === 0) {
+    if (summary.totalCampaigns === 0) {
       return {
         success: true,
         data: {
@@ -1179,8 +1086,35 @@ export async function executeGetCampaignCreatorDetails(
     }
 
     // Single campaign: Get creator details directly
-    if (campaigns.length === 1) {
-      return await processCreatorDetails(campaigns[0].id.toString(), campaigns[0], safeParams)
+    if (summary.totalCampaigns === 1) {
+      const singleCampaign = summary.campaigns[0]
+      const creators = await getCampaignCreatorsCore(singleCampaign.id, user, {
+        status: safeParams.status,
+        limit: safeParams.limit
+      })
+
+      // Group by status for summary
+      const statusSummary = creators.reduce((acc: Record<string, number>, creator) => {
+        const status = creator.status || 'unknown'
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+      }, {})
+
+      return {
+        success: true,
+        data: {
+          type: 'single_campaign_creator_details' as const,
+          campaignName: singleCampaign.name,
+          statusSummary,
+          creators: creators.map((creator) => ({
+            id: creator.id,
+            name: creator.name,
+            handle: creator.handle,
+            currentState: creator.status
+          })),
+          lastUpdated: new Date().toISOString()
+        }
+      }
     }
 
     // Multiple campaigns: Show selection interface
@@ -1190,18 +1124,18 @@ export async function executeGetCampaignCreatorDetails(
         type: 'multiple_campaigns' as const,
         message:
           "You have multiple campaigns. Which campaign's creator details would you like to see?",
-        campaigns: campaigns.map((c) => ({
-          id: c.id.toString(),
+        campaigns: summary.campaigns.map((c) => ({
+          id: c.id,
           name: c.name,
           description: c.description,
           startDate: c.startDate,
           endDate: c.endDate,
           status: c.status,
-          createdAt: c.createdAt,
-          deliverables: c.deliverables,
-          totalBudget: c.totalBudget?.toString() || null
+          createdAt: new Date().toISOString(), // We don't have this in the summary
+          deliverables: [], // We don't have this in the summary
+          totalBudget: null // We don't have this in the summary
         })),
-        totalCampaigns: campaigns.length,
+        totalCampaigns: summary.totalCampaigns,
         requestedAction: 'get_campaign_creator_details',
         requestedParams: {
           status: safeParams.status,
@@ -1219,292 +1153,5 @@ export async function executeGetCampaignCreatorDetails(
 }
 
 // Helper function to process creator details for a specific campaign
-async function processCreatorDetails(
-  campaignId: string,
-  campaign: Record<string, unknown>,
-  params: { status?: string; limit?: number }
-) {
-  // For general "get creator status" requests, don't apply any status filter
-  // Only filter when user explicitly requests specific statuses
-  const shouldApplyStatusFilter = params.status && params.status.trim() !== ''
-
-  log.info('Processing creator details:', {
-    campaignId,
-    campaignName: campaign.name,
-    requestedStatus: params.status,
-    shouldApplyStatusFilter,
-    limit: params.limit
-  })
-
-  // Get all creators in the campaign with full creator details
-  const creatorsResult = await getCampaignCreatorsWithDetails({
-    campaignId: campaignId,
-    status: shouldApplyStatusFilter ? params.status : undefined,
-    limit: params.limit || 1000
-  })
-
-  log.info('Retrieved creators result:', {
-    campaignId,
-    resultLength: creatorsResult?.length || 0,
-    resultType: typeof creatorsResult,
-    hasResult: !!creatorsResult
-  })
-
-  if (!creatorsResult || creatorsResult.length === 0) {
-    return {
-      success: true,
-      data: {
-        type: 'single_campaign_creator_details' as const,
-        campaignName: campaign.name as string,
-        statusSummary: {},
-        creators: [],
-        lastUpdated: new Date().toISOString(),
-        message: shouldApplyStatusFilter
-          ? `No creators found with the requested status: ${params.status}.`
-          : `No creators found in this campaign.`
-      }
-    }
-  }
-
-  // Transform creator data - only essential fields for UI
-  const detailedCreators = creatorsResult.map((creator: CampaignCreatorDetails) => ({
-    id: creator.cc_id?.toString() || '',
-    name: creator.creator_name || creator.creator_handle || 'Unknown',
-    handle: creator.creator_handle || creator.creator_name || 'Unknown',
-    currentState: creator.campaign_creator_current_state || 'unknown'
-  }))
-
-  // Group by status for summary
-  const statusSummary = detailedCreators.reduce((acc: Record<string, number>, creator) => {
-    const status = creator.currentState || 'unknown'
-    acc[status] = (acc[status] || 0) + 1
-    return acc
-  }, {})
-
-  return {
-    success: true,
-    data: {
-      type: 'single_campaign_creator_details' as const,
-      campaignName: campaign.name,
-      statusSummary,
-      creators: detailedCreators,
-      lastUpdated: new Date().toISOString()
-    }
-  }
-}
-
-// Types for campaign validation
-interface CampaignValidationSuccess {
-  success: true
-  campaign: Record<string, unknown>
-  company: Record<string, unknown>
-}
-
-interface CampaignValidationNeedsSelection {
-  success: false
-  needsCampaignSelection: true
-  campaigns: Array<{
-    id: string
-    name: string
-    description: string | null
-    startDate: string
-    endDate: string
-    status: string
-    totalBudget: string | null
-  }>
-  message: string
-  stepType: 'intermediary'
-}
-
-interface CampaignValidationError {
-  success: false
-  error: string
-}
-
-type CampaignValidationResult =
-  | CampaignValidationSuccess
-  | CampaignValidationNeedsSelection
-  | CampaignValidationError
-
-// Helper function to validate campaign access and provide campaign selection if needed
-async function validateCampaignAccess(
-  campaignId: string | undefined,
-  user: UserJwt,
-  actionName: string
-): Promise<CampaignValidationResult> {
-  try {
-    // Get user's company
-    const company = await findCompanyByUserId(user.sub)
-    if (!company?.id) {
-      return {
-        success: false,
-        error: 'No company found for the user'
-      }
-    }
-
-    // If no campaign ID provided, get available campaigns for selection
-    if (!campaignId || campaignId.trim() === '') {
-      log.info(`No campaign ID provided for ${actionName}, fetching available campaigns`)
-
-      const campaignsResult = await executeListCampaigns(user)
-      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
-        return {
-          success: false,
-          error: 'Failed to retrieve available campaigns'
-        }
-      }
-
-      const campaigns = campaignsResult.data.campaigns
-
-      if (campaigns.length === 0) {
-        return {
-          success: false,
-          needsCampaignSelection: true,
-          campaigns: [],
-          message: `To ${actionName}, you need a campaign first. Would you like me to help you create one?`,
-          stepType: 'intermediary'
-        }
-      }
-
-      if (campaigns.length === 1) {
-        // Auto-select the only available campaign
-        const campaign = await getCampaignById(campaigns[0].id.toString())
-        if (!campaign) {
-          return {
-            success: false,
-            error: 'Failed to retrieve campaign details'
-          }
-        }
-
-        log.info(`Auto-selected the only available campaign: ${campaign.name}`)
-        return {
-          success: true,
-          campaign: campaign as unknown as Record<string, unknown>,
-          company: company as unknown as Record<string, unknown>
-        }
-      }
-
-      // Multiple campaigns available - user needs to choose
-      return {
-        success: false,
-        needsCampaignSelection: true,
-        campaigns: campaigns.map((c) => ({
-          id: c.id.toString(),
-          name: c.name,
-          description: c.description,
-          startDate: c.startDate,
-          endDate: c.endDate,
-          status: c.status,
-          totalBudget: c.totalBudget?.toString() || null
-        })),
-        message: `You have ${campaigns.length} campaigns. Please specify which campaign you'd like to ${actionName}:`,
-        stepType: 'intermediary' as const
-      }
-    }
-
-    // Campaign ID provided - validate it's a valid number first
-    const campaignIdNum = parseInt(campaignId, 10)
-    if (isNaN(campaignIdNum) || campaignIdNum <= 0) {
-      // Invalid campaign ID format - show available campaigns instead of error
-      log.info(`Invalid campaign ID format: ${campaignId}, showing available campaigns`)
-
-      const campaignsResult = await executeListCampaigns(user)
-      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
-        return {
-          success: false,
-          error: 'Failed to retrieve available campaigns'
-        }
-      }
-
-      const campaigns = campaignsResult.data.campaigns
-
-      if (campaigns.length === 0) {
-        return {
-          success: false,
-          needsCampaignSelection: true,
-          stepType: 'intermediary' as const,
-          campaigns: [],
-          message: `Invalid campaign ID "${campaignId}". You don't have any campaigns yet. Would you like me to help you create one?`
-        }
-      }
-
-      return {
-        success: false,
-        needsCampaignSelection: true,
-        stepType: 'intermediary' as const,
-        campaigns: campaigns.map((c) => ({
-          id: c.id.toString(),
-          name: c.name,
-          description: c.description,
-          startDate: c.startDate,
-          endDate: c.endDate,
-          status: c.status,
-          totalBudget: c.totalBudget?.toString() || null
-        })),
-        message: `Here are your available campaigns to ${actionName}:`
-      }
-    }
-
-    // Now validate it exists and user has access
-    const campaign = await getCampaignById(campaignId)
-    if (!campaign) {
-      // Campaign not found - show available campaigns instead of just error
-      log.info(`Campaign ID ${campaignId} not found, showing available campaigns`)
-
-      const campaignsResult = await executeListCampaigns(user)
-      if (!campaignsResult.success || !campaignsResult.data?.campaigns) {
-        return {
-          success: false,
-          error: 'Failed to retrieve available campaigns'
-        }
-      }
-
-      const campaigns = campaignsResult.data.campaigns
-
-      if (campaigns.length === 0) {
-        return {
-          success: false,
-          needsCampaignSelection: true,
-          stepType: 'intermediary' as const,
-          campaigns: [],
-          message: `Campaign with ID ${campaignId} not found. You don't have any campaigns yet. Would you like me to help you create one?`
-        }
-      }
-
-      return {
-        success: false,
-        needsCampaignSelection: true,
-        stepType: 'intermediary' as const,
-        campaigns: campaigns.map((c) => ({
-          id: c.id.toString(),
-          name: c.name,
-          description: c.description,
-          startDate: c.startDate,
-          endDate: c.endDate,
-          status: c.status,
-          totalBudget: c.totalBudget?.toString() || null
-        })),
-        message: `Here are your available campaigns to ${actionName}:`
-      }
-    }
-
-    if (campaign.company_id.toString() !== company.id.toString()) {
-      return {
-        success: false,
-        error: 'You do not have access to this campaign'
-      }
-    }
-
-    return {
-      success: true,
-      campaign: campaign as unknown as Record<string, unknown>,
-      company: company as unknown as Record<string, unknown>
-    }
-  } catch (error) {
-    log.error(`Error in validateCampaignAccess for ${actionName}:`, error)
-    return {
-      success: false,
-      error: `Failed to validate campaign access: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }
-  }
-}
+// Note: processCreatorDetails and validateCampaignAccess functions have been moved to /services/core/campaign.ts
+// and are no longer needed here as the refactored functions use the core services directly

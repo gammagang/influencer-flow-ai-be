@@ -51,7 +51,7 @@ const TEMPERATURE_CONFIG = {
 
 // Enhanced token limits based on model capabilities
 const TOKEN_LIMITS = {
-  TOOL_CALLING: 512, // Conservative for tool calling
+  TOOL_CALLING: 1024, // Conservative for tool calling
   RESPONSE_GENERATION: 1024, // Adequate for responses
   MAX_COMPLETION: 4096 // Maximum allowed
 } as const
@@ -367,16 +367,16 @@ export async function handleChatMessage(
               )
               break
             }
-            case 'smart_campaign_status': {
-              log.info('Executing smart_campaign_status')
-              result = await executeCampaignStatus(user)
+            case 'campaign_status': {
+              log.info('Executing campaign_status with params:', parsedArgs)
+              result = await executeCampaignStatus(user, parsedArgs as { campaignId?: string })
               break
             }
             case 'get_campaign_creator_details': {
               log.info('Executing get_campaign_creator_details with params:', parsedArgs)
               result = await executeGetCampaignCreatorDetails(
                 user,
-                parsedArgs as { status?: string; limit?: number }
+                parsedArgs as { campaignId?: string; status?: string; limit?: number }
               )
               break
             }

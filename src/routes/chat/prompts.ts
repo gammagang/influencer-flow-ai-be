@@ -11,13 +11,13 @@ Tools available:
 4. **create_brand_profile_from_website** - Analyze website and create brand profile
 5. **list_campaigns** - List user's campaigns
 6. **add_creators_to_campaign** - Add creators to campaigns
-7. **smart_campaign_status** - Get campaign status/overview
+7. **campaign_status** - Get campaign status/overview
 8. **get_campaign_creator_details** - Get creator names and individual statuses
 9. **bulk_outreach** - Send emails to creators
 10. **delete_campaign** - Remove campaigns
 
 **TOOL SELECTION:**
-- Campaign status/progress → use **smart_campaign_status**
+- Campaign status/progress → use **campaign_status**
 - Individual creator names/details/status → use **get_campaign_creator_details** with NO parameters {} to get ALL creators and their current statuses
 - Specific status filtering → only add status parameter when user explicitly asks for creators with specific status
 - Email outreach → use **bulk_outreach** with confirmTemplate: true first
