@@ -8,7 +8,7 @@ import {
 } from '@/api/campaign-creator'
 import { getCampaignById } from '@/api/campaign'
 import { getCompanyById, findCompanyByUserId } from '@/api/company'
-import { createContract } from '@/api/contract'
+import { createContract, getContractsByCampaignCreatorId } from '@/api/contract'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -66,9 +66,11 @@ router.get('/:ccMappingId', async (req: Request, res: Response) => {
   const ccMappingId = req.params.ccMappingId
 
   try {
-    const link = await getCampaignCreatorWithCampaignDetails(ccMappingId)
+    const ccMappingData = await getCampaignCreatorWithCampaignDetails(ccMappingId)
 
-    if (!link) {
+    const [contract = null] = await getContractsByCampaignCreatorId(ccMappingId)
+
+    if (!ccMappingData) {
       throw new NotFoundError(
         'Campaign-Creator link not found',
         `ccMappingId: ${ccMappingId} not found`,
@@ -76,7 +78,7 @@ router.get('/:ccMappingId', async (req: Request, res: Response) => {
       )
     }
 
-    SuccessResponse.send({ res, data: link })
+    SuccessResponse.send({ res, data: { ...ccMappingData, contract } })
   } catch (error: any) {
     throw new Error(error.message || 'Failed to fetch campaign-creator link')
   }

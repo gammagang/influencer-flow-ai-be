@@ -644,7 +644,75 @@
         }
       }
     },
-    "/api/contracts/{contractId}": {
+    "/api/campaign-creator/{ccMappingId}/status": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "ccMappingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/campaign-creator/campaign/{campaignId}/lifecycle-status": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/contract/{contractId}": {
       "get": {
         "description": "",
         "parameters": [
@@ -943,18 +1011,10 @@
         }
       }
     },
-    "/api/chat/conversation/{id}": {
+    "/api/chat/user/conversation": {
       "get": {
         "description": "",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "authorization",
             "in": "header",
@@ -973,14 +1033,6 @@
         "description": "",
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "authorization",
             "in": "header",
             "schema": {
@@ -995,31 +1047,12 @@
         }
       }
     },
-    "/api/chat/stats": {
+    "/public/campaign-creator-details/{ccMappingId}": {
       "get": {
         "description": "",
         "parameters": [
           {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/public/campaign-creator-details/{campaignCreatorMappingId}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "campaignCreatorMappingId",
+            "name": "ccMappingId",
             "in": "path",
             "required": true,
             "schema": {

@@ -1,5 +1,6 @@
 import { sql } from '@/libs/db'
 import { log } from '@/libs/logger'
+import { CreateSubmissionResponse } from '@docuseal/api'
 
 /**
  * Interface for contract data
@@ -12,7 +13,7 @@ export interface Contract {
   sent_at: Date
   signed_by_brand_at: Date | null
   signed_by_creator_at: Date | null
-  meta: { docusealSubmission?: any }
+  meta: { docusealSubmission?: CreateSubmissionResponse }
 }
 
 /**
@@ -20,15 +21,15 @@ export interface Contract {
  */
 export async function createContract(data: {
   campaign_creator_id: number
-  pdf_url?: string | null
   status: string
-  docusealSubmission: Record<string, unknown>
+  docusealSubmission: CreateSubmissionResponse
 }): Promise<Contract> {
   try {
+    const brandPdfUrl = data.docusealSubmission.submitters[0]?.embed_src ?? ''
     // Store the docusealSubmission in meta object
-    const meta = JSON.stringify({
+    const meta = {
       docusealSubmission: data.docusealSubmission
-    })
+    } as any
 
     const result = await sql<Contract[]>`
       INSERT INTO contract (
@@ -39,10 +40,10 @@ export async function createContract(data: {
         meta
       ) VALUES (
         ${data.campaign_creator_id},
-        ${data.pdf_url || null},
+        ${brandPdfUrl},
         ${data.status},
         NOW(),
-        ${meta}
+        ${sql.json(meta)}
       )
       RETURNING *
     `
