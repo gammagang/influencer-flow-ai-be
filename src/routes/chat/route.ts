@@ -4,7 +4,7 @@ import { SuccessResponse } from '@/libs/success-response'
 import { ChatRequestSchema } from './types'
 import { handleChatMessage } from './chat-handler'
 import { persistentConversationStore as conversationStore } from './conversation-store'
-import { creatorDiscoverySystemPrompt } from './prompts-condensed'
+import { creatorDiscoverySystemPrompt } from './prompts'
 
 const chatRouter = Router()
 

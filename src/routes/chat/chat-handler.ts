@@ -3,7 +3,7 @@ import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
 import { type UserJwt } from '@/middlewares/jwt'
 import { persistentConversationStore as conversationStore } from './conversation-store'
-import { finalResponseSystemPrompt } from './prompts-condensed'
+import { finalResponseSystemPrompt } from './prompts'
 import {
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
