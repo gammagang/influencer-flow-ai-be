@@ -128,7 +128,7 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
   const submission = await docuseal.createSubmission({
     template_id: DOCUSEAL_TEMPLATE_ID,
     send_email: true,
-    order: 'preserved',
+    order: 'random',
     submitters
   })
 
