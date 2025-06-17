@@ -21,6 +21,11 @@ import {
 } from '@/api/campaign-creator'
 import { generateEmailTemplate } from '@/api/outreach-email'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
+import {
+  createCampaignFromWebsite,
+  type CreateCampaignFromWebsiteParams,
+  type CampaignExtractionResult
+} from '@/api/create-campaign-from-website'
 
 // In-memory cache for email templates (cleared on server restart)
 const emailTemplateCache = new Map<
@@ -214,6 +219,86 @@ export async function executeCreateCampaign(
   }
 }
 
+// Function to execute campaign creation from website
+export async function executeCreateCampaignFromWebsite(
+  params: CreateCampaignFromWebsiteParams,
+  user: UserJwt
+): Promise<{
+  success: boolean
+  data?: {
+    extractedInfo?: CampaignExtractionResult
+    missingRequiredFields?: string[]
+    canCreateCampaign?: boolean
+    campaign?: CampaignResult
+  }
+  error?: string
+  message?: string
+}> {
+  try {
+    log.info('Creating campaign from website with params:', params)
+
+    // Step 1: Analyze the website and extract campaign information
+    const result = await createCampaignFromWebsite(params)
+
+    // Step 2: Check if we can create the campaign
+    if (result.canCreateCampaign && result.suggestedCampaignData) {
+      // All required fields are available, create the campaign
+      const createCampaignParams: CreateCampaignChatParams = {
+        name: result.suggestedCampaignData.name,
+        description: result.suggestedCampaignData.description,
+        startDate: result.suggestedCampaignData.startDate!,
+        endDate: result.suggestedCampaignData.endDate!,
+        deliverables: result.suggestedCampaignData.deliverables
+      }
+
+      // Create the campaign using the existing function
+      const campaignResult = await executeCreateCampaign(createCampaignParams, user)
+
+      if (campaignResult.success) {
+        return {
+          success: true,
+          data: {
+            extractedInfo: result.extractedInfo,
+            campaign: campaignResult.data?.campaign
+          },
+          message: `Campaign "${result.suggestedCampaignData.name}" created successfully based on the website analysis!`
+        }
+      } else {
+        return {
+          success: false,
+          error: campaignResult.error,
+          data: {
+            extractedInfo: result.extractedInfo,
+            missingRequiredFields: result.missingRequiredFields,
+            canCreateCampaign: false
+          }
+        }
+      }
+    } else {
+      // Missing required fields, return the analysis for user to provide missing info
+      return {
+        success: true,
+        data: {
+          extractedInfo: result.extractedInfo,
+          missingRequiredFields: result.missingRequiredFields,
+          canCreateCampaign: false
+        },
+        message: `Website analyzed successfully! I found some information but need additional details: ${result.missingRequiredFields.join(', ')}. Please provide these details so I can create the campaign.`
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeCreateCampaignFromWebsite:', error)
+    if (error instanceof Error) {
+      log.error('Error message:', error.message)
+      log.error('Error stack:', error.stack)
+    }
+    return {
+      success: false,
+      error: `Failed to analyze website for campaign creation: ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
 // Function to execute list campaigns
 export async function executeListCampaigns(user: UserJwt) {
   try {
@@ -330,8 +415,6 @@ export async function executeAddCreatorsToCampaign(
         error: 'Conversation not found. Please discover creators first.'
       }
     }
-
-    // ...existing code...
 
     // Find the most recent discover_creators result in conversation
     const messages = persistentConversationStore.getMessages(conversationId)
@@ -508,8 +591,6 @@ export async function executeBulkOutreach(
 
     // Define cache key once for both preview and send operations
     const templateCacheKey = `bulkOutreachTemplate_${params.campaignId}_${conversationId}`
-
-    // ...existing code...
 
     // Get all campaign-creator links for this campaign
     const campaignCreatorLinks = await getCampaignCreators({

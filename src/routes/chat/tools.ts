@@ -78,6 +78,67 @@ export const discoverCreatorsTool = {
   }
 }
 
+// Function calling tool definition for creating campaign from website URL
+export const createCampaignFromWebsiteTool = {
+  type: 'function' as const,
+  function: {
+    name: 'create_campaign_from_website',
+    description:
+      'Analyze a brand website URL to extract campaign information and create a campaign. This tool scrapes the website, extracts relevant details like brand name, description, and suggests campaign parameters. It will identify missing required information and ask the user to provide those details before creating the campaign.',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          pattern: '^https?://.+',
+          description:
+            'The website URL to analyze and create a campaign from (required). Must be a valid HTTP/HTTPS URL.'
+        },
+        userProvidedDetails: {
+          type: 'object',
+          description:
+            'Optional: Additional details provided by the user to fill gaps in extracted information',
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 100,
+              description: 'Campaign name if not extractable from website or user wants to override'
+            },
+            startDate: {
+              type: 'string',
+              pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+              description: 'Campaign start date in YYYY-MM-DD format'
+            },
+            endDate: {
+              type: 'string',
+              pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+              description: 'Campaign end date in YYYY-MM-DD format'
+            },
+            deliverables: {
+              type: 'array',
+              items: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 100
+              },
+              minItems: 1,
+              maxItems: 20,
+              description: 'List of deliverables expected from creators'
+            },
+            description: {
+              type: 'string',
+              maxLength: 1000,
+              description: 'Campaign description if user wants to override extracted description'
+            }
+          }
+        }
+      },
+      required: ['url']
+    }
+  }
+}
+
 // Function calling tool definition for campaign creation
 export const createCampaignTool = {
   type: 'function' as const,

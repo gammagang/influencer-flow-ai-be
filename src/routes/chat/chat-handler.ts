@@ -8,6 +8,7 @@ import {
   executeAddCreatorsToCampaign,
   executeBulkOutreach,
   executeCreateCampaign,
+  executeCreateCampaignFromWebsite,
   executeDeleteCampaign,
   executeDiscoverCreators,
   executeGetCampaignCreatorDetails,
@@ -18,6 +19,7 @@ import {
   addCreatorsToCampaignTool,
   bulkOutreachTool,
   createCampaignTool,
+  createCampaignFromWebsiteTool,
   deleteCampaignTool,
   discoverCreatorsTool,
   getCampaignCreatorDetailsTool,
@@ -25,6 +27,7 @@ import {
   smartCampaignStatusTool
 } from './tools'
 import { type ChatResponse, type CreateCampaignChatParams, type ToolCallResult } from './types'
+import { type CreateCampaignFromWebsiteParams } from '@/api/create-campaign-from-website'
 
 // Enhanced model configuration based on Groq documentation
 const GROQ_MODELS = {
@@ -216,6 +219,7 @@ export async function handleChatMessage(
           addCreatorsToCampaignTool,
           bulkOutreachTool,
           createCampaignTool,
+          createCampaignFromWebsiteTool,
           deleteCampaignTool,
           discoverCreatorsTool,
           getCampaignCreatorDetailsTool,
@@ -308,6 +312,14 @@ export async function handleChatMessage(
             case 'create_campaign': {
               log.info('Executing create_campaign with params:', parsedArgs)
               result = await executeCreateCampaign(parsedArgs as CreateCampaignChatParams, user)
+              break
+            }
+            case 'create_campaign_from_website': {
+              log.info('Executing create_campaign_from_website with params:', parsedArgs)
+              result = await executeCreateCampaignFromWebsite(
+                parsedArgs as unknown as CreateCampaignFromWebsiteParams,
+                user
+              )
               break
             }
             case 'list_campaigns': {
