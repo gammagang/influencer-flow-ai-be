@@ -65,23 +65,18 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:ccMappingId', async (req: Request, res: Response) => {
   const ccMappingId = req.params.ccMappingId
 
-  try {
-    const ccMappingData = await getCampaignCreatorWithCampaignDetails(ccMappingId)
-
-    const [contract = null] = await getContractsByCampaignCreatorId(ccMappingId)
-
-    if (!ccMappingData) {
-      throw new NotFoundError(
-        'Campaign-Creator link not found',
-        `ccMappingId: ${ccMappingId} not found`,
-        req.path
-      )
-    }
-
-    SuccessResponse.send({ res, data: { ...ccMappingData, contract } })
-  } catch (error: any) {
-    throw new Error(error.message || 'Failed to fetch campaign-creator link')
+  const ccMappingData = await getCampaignCreatorWithCampaignDetails(ccMappingId)
+  if (!ccMappingData) {
+    throw new NotFoundError(
+      'Campaign-Creator link not found',
+      `ccMappingId: ${ccMappingId} not found`,
+      req.path
+    )
   }
+
+  const [contract = null] = await getContractsByCampaignCreatorId(ccMappingId)
+
+  SuccessResponse.send({ res, data: { ...ccMappingData, contract } })
 })
 
 router.put('/:linkId', async (req: Request, res: Response) => {
@@ -289,43 +284,6 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
         req.path
       )
 
-    // Parse meta fields (safely handle string or object formats)
-    const parsedCompanyMeta = (() => {
-      try {
-        if (typeof company.meta === 'string' && company.meta) {
-          return JSON.parse(company.meta)
-        }
-        return company.meta || {}
-      } catch (e) {
-        console.error('Error parsing company meta:', e)
-        return {}
-      }
-    })()
-
-    const campaignCreatorMeta = (() => {
-      try {
-        if (typeof mapping.campaign_creator_meta === 'string' && mapping.campaign_creator_meta) {
-          return JSON.parse(mapping.campaign_creator_meta)
-        }
-        return mapping.campaign_creator_meta || {}
-      } catch (e) {
-        console.error('Error parsing campaign_creator_meta:', e)
-        return {}
-      }
-    })()
-
-    const creatorMeta = (() => {
-      try {
-        if (typeof mapping.creator_meta === 'string' && mapping.creator_meta) {
-          return JSON.parse(mapping.creator_meta)
-        }
-        return mapping.creator_meta || {}
-      } catch (e) {
-        console.error('Error parsing creator_meta:', e)
-        return {}
-      }
-    })()
-
     // Helper function to format date in YYYY-MM-DD format
     const formatDate = (date: string | null) => {
       if (!date) return new Date().toISOString().split('T')[0]
@@ -338,19 +296,14 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
       }
     }
 
-    // Get the creator's handle based on their platform
-    const getCreatorHandle = () => {
-      if (mapping.creator_platform === 'instagram') {
-        return creatorMeta.instagram_handle || mapping.creator_name
-      }
-      if (mapping.creator_platform === 'youtube') {
-        return creatorMeta.youtube_handle || mapping.creator_name
-      }
-      if (mapping.creator_platform === 'tiktok') {
-        return creatorMeta.tiktok_handle || mapping.creator_name
-      }
-      return mapping.creator_name
-    }
+    const brandEmail = req.user?.email ?? ''
+    const brandName = req.user?.user_metadata?.brand_name ?? 'Your Brand'
+    const brandContactPerson = req.user?.user_metadata?.contact_name ?? ''
+    const deliverables = mapping.campaign_creator_meta?.campaignInfo?.contentDeliverables || ''
+
+    const creatorName = mapping.creator_name || 'Creator'
+    const creatorEmail = mapping.creator_email || 'socials@madhukm.com' // Default email if not provided
+    const instaHandle = mapping.creator_handle || ''
 
     // Create contract data object with proper null/undefined handling
     const contractData = {
@@ -359,19 +312,9 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
         startDate: formatDate(mapping.campaign_start_date),
         endDate: formatDate(mapping.campaign_end_date)
       },
-      brand: {
-        name: company.name || 'Your Brand',
-        contactPerson:
-          parsedCompanyMeta.contact_name || company.owner_name || 'Brand Representative',
-        email: parsedCompanyMeta.contact_email || company.owner_name || 'contact@example.com'
-      },
-      creator: {
-        name: mapping.creator_name || 'Creator',
-        instaHandle: getCreatorHandle(),
-        email: mapping.creator_email || creatorMeta.email || 'creator@example.com'
-      },
-      deliverables:
-        campaignCreatorMeta.contentDeliverables || 'Content deliverables to be determined',
+      brand: { name: brandName, contactPerson: brandContactPerson, email: brandEmail },
+      creator: { name: creatorName, instaHandle, email: creatorEmail },
+      deliverables: deliverables,
       compensation: {
         currency: 'INR',
         amount: mapping.assigned_budget || 0,
