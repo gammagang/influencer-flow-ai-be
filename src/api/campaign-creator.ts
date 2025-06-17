@@ -208,8 +208,8 @@ export async function updateCampaignCreatorLink(
   if (!currentLink) throw new Error('Campaign-creator link not found')
 
   const updatedMeta = currentLink.campaign_creator_meta || {}
-  if (contentDeliverables) updatedMeta.contentDeliverables = contentDeliverables
-  if (contractId) updatedMeta.contractId = contentDeliverables
+  if (contentDeliverables) updatedMeta.campaignInfo = { contentDeliverables }
+  if (contractId) updatedMeta.contractId = contractId
 
   // Use conditional logic for the update
   const newState = status ? status : currentLink.campaign_creator_current_state
