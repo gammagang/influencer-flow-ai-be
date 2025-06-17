@@ -26,6 +26,11 @@ import {
   type CreateCampaignFromWebsiteParams,
   type CampaignExtractionResult
 } from '@/api/create-campaign-from-website'
+import {
+  createBrandProfileFromWebsite,
+  type CreateBrandProfileFromWebsiteParams,
+  type BrandProfileExtractionResult
+} from '@/api/create-brand-profile-from-website'
 
 // In-memory cache for email templates (cleared on server restart)
 const emailTemplateCache = new Map<
@@ -295,6 +300,75 @@ export async function executeCreateCampaignFromWebsite(
     return {
       success: false,
       error: `Failed to analyze website for campaign creation: ${error instanceof Error ? error.message : 'Unknown error'}`
+    }
+  }
+}
+
+// Function to execute brand profile creation from website
+export async function executeCreateBrandProfileFromWebsite(
+  params: CreateBrandProfileFromWebsiteParams,
+  user: UserJwt
+): Promise<{
+  success: boolean
+  data?: {
+    extractedInfo?: BrandProfileExtractionResult
+    missingRequiredFields?: string[]
+    canCreateProfile?: boolean
+    company?: object
+  }
+  error?: string
+  message?: string
+}> {
+  try {
+    log.info('Creating brand profile from website with params:', params)
+
+    // Step 1: Analyze the website and extract brand profile information
+    const result = await createBrandProfileFromWebsite(params)
+
+    // Step 2: Check if we can create the brand profile
+    if (result.canCreateProfile && result.suggestedProfileData) {
+      // All required fields are available, create the company/brand profile
+      const { createCompany } = await import('@/api/company')
+
+      const newCompany = await createCompany({
+        name: result.suggestedProfileData.name,
+        website: result.suggestedProfileData.website,
+        category: result.suggestedProfileData.category,
+        owner: user.email,
+        description: result.suggestedProfileData.description || null,
+        user_id: user.sub,
+        meta: { phone: result.suggestedProfileData.phone }
+      })
+
+      return {
+        success: true,
+        data: {
+          extractedInfo: result.extractedInfo,
+          company: newCompany
+        },
+        message: `Brand profile "${result.suggestedProfileData.name}" created successfully based on the website analysis!`
+      }
+    } else {
+      // Missing required fields, return the analysis for user to provide missing info
+      return {
+        success: true,
+        data: {
+          extractedInfo: result.extractedInfo,
+          missingRequiredFields: result.missingRequiredFields,
+          canCreateProfile: false
+        },
+        message: `Website analyzed successfully! I found some information but need additional details: ${result.missingRequiredFields.join(', ')}. Please provide these details so I can create the brand profile.`
+      }
+    }
+  } catch (error) {
+    log.error('Error in executeCreateBrandProfileFromWebsite:', error)
+    if (error instanceof Error) {
+      log.error('Error message:', error.message)
+      log.error('Error stack:', error.stack)
+    }
+    return {
+      success: false,
+      error: `Failed to analyze website for brand profile creation: ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }

@@ -139,6 +139,56 @@ export const createCampaignFromWebsiteTool = {
   }
 }
 
+// Function calling tool definition for creating brand profile from website URL
+export const createBrandProfileFromWebsiteTool = {
+  type: 'function' as const,
+  function: {
+    name: 'create_brand_profile_from_website',
+    description:
+      'Analyze a brand website URL to extract brand information and create a company profile. This tool scrapes the website, extracts relevant details like brand name, description, industry, target audience, and contact information. It will identify missing required information and ask the user to provide those details before creating the brand profile.',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          pattern: '^https?://.+',
+          description:
+            'The website URL to analyze and create a brand profile from (required). Must be a valid HTTP/HTTPS URL.'
+        },
+        userProvidedDetails: {
+          type: 'object',
+          description:
+            'Optional: Additional details provided by the user to fill gaps in extracted information',
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 2,
+              maxLength: 100,
+              description:
+                'Brand/company name if not extractable from website or user wants to override'
+            },
+            phone: {
+              type: 'string',
+              description: 'Phone number if not found on website or user wants to override'
+            },
+            description: {
+              type: 'string',
+              maxLength: 1000,
+              description: 'Brand description if user wants to override extracted description'
+            },
+            category: {
+              type: 'string',
+              maxLength: 100,
+              description: 'Industry/category if user wants to override extracted industry'
+            }
+          }
+        }
+      },
+      required: ['url']
+    }
+  }
+}
+
 // Function calling tool definition for campaign creation
 export const createCampaignTool = {
   type: 'function' as const,

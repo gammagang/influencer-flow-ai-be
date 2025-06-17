@@ -9,6 +9,7 @@ import {
   executeBulkOutreach,
   executeCreateCampaign,
   executeCreateCampaignFromWebsite,
+  executeCreateBrandProfileFromWebsite,
   executeDeleteCampaign,
   executeDiscoverCreators,
   executeGetCampaignCreatorDetails,
@@ -20,6 +21,7 @@ import {
   bulkOutreachTool,
   createCampaignTool,
   createCampaignFromWebsiteTool,
+  createBrandProfileFromWebsiteTool,
   deleteCampaignTool,
   discoverCreatorsTool,
   getCampaignCreatorDetailsTool,
@@ -28,6 +30,7 @@ import {
 } from './tools'
 import { type ChatResponse, type CreateCampaignChatParams, type ToolCallResult } from './types'
 import { type CreateCampaignFromWebsiteParams } from '@/api/create-campaign-from-website'
+import { type CreateBrandProfileFromWebsiteParams } from '@/api/create-brand-profile-from-website'
 
 // Enhanced model configuration based on Groq documentation
 const GROQ_MODELS = {
@@ -220,6 +223,7 @@ export async function handleChatMessage(
           bulkOutreachTool,
           createCampaignTool,
           createCampaignFromWebsiteTool,
+          createBrandProfileFromWebsiteTool,
           deleteCampaignTool,
           discoverCreatorsTool,
           getCampaignCreatorDetailsTool,
@@ -373,6 +377,14 @@ export async function handleChatMessage(
               result = await executeGetCampaignCreatorDetails(
                 user,
                 parsedArgs as { status?: string; limit?: number }
+              )
+              break
+            }
+            case 'create_brand_profile_from_website': {
+              log.info('Executing create_brand_profile_from_website with params:', parsedArgs)
+              result = await executeCreateBrandProfileFromWebsite(
+                parsedArgs as unknown as CreateBrandProfileFromWebsiteParams,
+                user
               )
               break
             }
