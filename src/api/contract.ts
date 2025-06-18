@@ -35,11 +35,10 @@ export async function createContract(data: {
         campaign_creator_id,
         pdf_url,
         status,
-        sent_at,
-        meta
+        sent_at
       ) VALUES (
         ${data.campaign_creator_id},
-        "",
+        ${'TBD'},
         ${data.status},
         NOW()
       )
@@ -118,7 +117,9 @@ export async function addDocusealSubmissionToContract(
 
   const result = await sql<Contract[]>`
       UPDATE contract
-      SET meta = ${sql.json({ docusealSubmission } as any)}
+      SET 
+        meta = ${sql.json({ docusealSubmission } as any)},
+        pdf_url = ${docusealSubmission.submitters[0]?.embed_src ?? ''}
       WHERE id = ${id}
       RETURNING *
     `
