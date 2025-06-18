@@ -8,7 +8,11 @@ import {
 } from '@/api/campaign-creator'
 import { getCampaignById } from '@/api/campaign'
 import { getCompanyById, findCompanyByUserId } from '@/api/company'
-import { createContract, getContractsByCampaignCreatorId } from '@/api/contract'
+import {
+  addDocusealSubmissionToContract,
+  createContract,
+  getContractsByCampaignCreatorId
+} from '@/api/contract'
 import { sendOutreachEmailProgrammatic } from '@/api/email'
 import { generateUserOutreachEmail } from '@/api/outreach-email'
 import { NotFoundError } from '@/errors/not-found-error'
@@ -284,6 +288,11 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
         req.path
       )
 
+    let contract = await createContract({
+      campaign_creator_id: parseInt(ccMappingId, 10),
+      status: 'contract.created'
+    })
+
     // Helper function to format date in YYYY-MM-DD format
     const formatDate = (date: string | null) => {
       if (!date) return new Date().toISOString().split('T')[0]
@@ -302,11 +311,12 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     const deliverables = mapping.campaign_creator_meta?.campaignInfo?.contentDeliverables || ''
 
     const creatorName = mapping.creator_name || 'Creator'
-    const creatorEmail = mapping.creator_email || 'socials@madhukm.com' // Default email if not provided
+    const creatorEmail = mapping.creator_email || 'jevowek812@finfave.com' // Default email if not provided
     const instaHandle = mapping.creator_handle || ''
 
-    // Create contract data object with proper null/undefined handling
-    const contractData = {
+    // Send the contract via DocuSeal
+    const submission = await sendContractViaEmail({
+      contractId: contract.id,
       campaign: {
         name: mapping.campaign_name || 'Untitled Campaign',
         startDate: formatDate(mapping.campaign_start_date),
@@ -320,17 +330,10 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
         amount: mapping.assigned_budget || 0,
         paymentMethod: 'Bank Transfer'
       }
-    }
-
-    // Send the contract via DocuSeal
-    const submission = await sendContractViaEmail(contractData)
-
-    // Create a new contract entity with the submission data
-    const contract = await createContract({
-      campaign_creator_id: parseInt(ccMappingId, 10),
-      status: 'sent',
-      docusealSubmission: submission
     })
+
+    // Add Docuseal Submission to contract Meta
+    await addDocusealSubmissionToContract(contract.id, submission)
 
     // Update mapping to record that contract was sent
     await updateCampaignCreatorState(ccMappingId, 'waiting for signature')

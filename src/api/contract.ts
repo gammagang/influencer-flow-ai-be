@@ -22,16 +22,15 @@ export interface Contract {
 export async function createContract(data: {
   campaign_creator_id: number
   status: string
-  docusealSubmission: CreateSubmissionResponse
+  // docusealSubmission: CreateSubmissionResponse
 }): Promise<Contract> {
-  try {
-    const brandPdfUrl = data.docusealSubmission.submitters[0]?.embed_src ?? ''
-    // Store the docusealSubmission in meta object
-    const meta = {
-      docusealSubmission: data.docusealSubmission
-    } as any
+  // const brandPdfUrl = data.docusealSubmission.submitters[0]?.embed_src ?? ''
+  // // Store the docusealSubmission in meta object
+  // const meta = {
+  //   docusealSubmission: data.docusealSubmission
+  // } as any
 
-    const result = await sql<Contract[]>`
+  const result = await sql<Contract[]>`
       INSERT INTO contract (
         campaign_creator_id,
         pdf_url,
@@ -40,26 +39,20 @@ export async function createContract(data: {
         meta
       ) VALUES (
         ${data.campaign_creator_id},
-        ${brandPdfUrl},
+        "",
         ${data.status},
-        NOW(),
-        ${sql.json(meta)}
+        NOW()
       )
       RETURNING *
     `
 
-    return result[0]
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    log.error('Error creating contract:', error)
-    throw new Error(`Failed to create contract: ${errorMessage}`)
-  }
+  return result[0]
 }
 
 /**
  * Gets a contract by id
  */
-export async function getContractById(id: number | string) {
+export async function getContractById(id: number) {
   try {
     const result = await sql<Contract[]>`
       SELECT * FROM contract
@@ -77,7 +70,7 @@ export async function getContractById(id: number | string) {
 /**
  * Gets contracts by campaign creator id
  */
-export async function getContractsByCampaignCreatorId(campaignCreatorId: number | string) {
+export async function getContractsByCampaignCreatorId(campaignCreatorId: number) {
   try {
     return await sql<Contract[]>`
       SELECT * FROM contract
@@ -94,7 +87,7 @@ export async function getContractsByCampaignCreatorId(campaignCreatorId: number 
 /**
  * Updates a contract's status
  */
-export async function updateContractStatus(id: number | string, status: string) {
+export async function updateContractStatus(id: number, status: string) {
   try {
     const result = await sql<Contract[]>`
       UPDATE contract
@@ -116,53 +109,27 @@ export async function updateContractStatus(id: number | string, status: string) 
 /**
  * Updates contract meta information
  */
-export async function updateContractMeta(id: number | string, metaData: Record<string, unknown>) {
-  try {
-    // First get current meta
-    const currentContract = await getContractById(id)
-    if (!currentContract) {
-      throw new Error(`Contract with ID ${id} not found`)
-    }
+export async function addDocusealSubmissionToContract(
+  id: number,
+  docusealSubmission: CreateSubmissionResponse
+) {
+  const currentContract = await getContractById(id)
+  if (!currentContract) throw new Error(`Contract with ID ${id} not found`)
 
-    // Parse current meta if it's a string
-    let currentMeta: Record<string, unknown> = {}
-    if (currentContract.meta) {
-      if (typeof currentContract.meta === 'string') {
-        try {
-          currentMeta = JSON.parse(currentContract.meta)
-        } catch (e) {
-          log.error(`Could not parse meta for contract ${id}:`, e)
-        }
-      } else {
-        // If meta is already an object, use it directly
-        currentMeta = currentContract.meta as Record<string, unknown>
-      }
-    }
-
-    // Merge current meta with new meta and stringify
-    const updatedMeta = JSON.stringify({
-      ...currentMeta,
-      ...metaData
-    })
-
-    const result = await sql<Contract[]>`
+  const result = await sql<Contract[]>`
       UPDATE contract
-      SET meta = ${updatedMeta}
+      SET meta = ${sql.json({ docusealSubmission } as any)}
       WHERE id = ${id}
       RETURNING *
     `
 
-    return result.length ? result[0] : null
-  } catch (error: any) {
-    log.error(`Error updating contract meta for ID ${id}:`, error)
-    throw new Error(`Failed to update contract meta: ${error.message}`)
-  }
+  return result[0]
 }
 
 /**
  * Marks a contract as signed by brand or creator
  */
-export async function markContractSigned(id: number | string, signedBy: 'brand' | 'creator') {
+export async function markContractSigned(id: number, signedBy: 'brand' | 'creator') {
   try {
     // const fieldName = signedBy === 'brand' ? 'signed_by_brand_at' : 'signed_by_creator_at'
 

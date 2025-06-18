@@ -22,22 +22,22 @@ export const DocuSealWebhookSchema = z.object({
   timestamp: z.string().datetime(),
   data: z.object({
     id: z.number(),
-    submission_id: z.number(),
-    email: z.string().email().nullable(),
-    phone: z.string().nullable(),
-    name: z.string().nullable(),
-    ua: z.string().nullable(),
-    ip: z.string().nullable(),
-    sent_at: z.string().datetime().nullable(),
-    opened_at: z.string().datetime().nullable(),
-    completed_at: z.string().datetime().nullable(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
-    external_id: z.string().nullable(),
+    submission_id: z.number().nullable().optional(),
+    email: z.string().email().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    ua: z.string().nullable().optional(),
+    ip: z.string().nullable().optional(),
+    sent_at: z.string().datetime().nullable().optional(),
+    opened_at: z.string().datetime().nullable().optional(),
+    completed_at: z.string().datetime().nullable().optional(),
+    created_at: z.string().datetime().optional(),
+    updated_at: z.string().datetime().optional(),
+    external_id: z.string().nullable().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
-    status: z.string(),
-    application_key: z.string().nullable(),
-    decline_reason: z.string().nullable(),
+    status: z.string().optional(),
+    application_key: z.string().nullable().optional(),
+    decline_reason: z.string().nullable().optional(),
     preferences: z.record(z.string(), z.any()).optional(),
     values: z.array(
       z.object({
@@ -52,21 +52,21 @@ export const DocuSealWebhookSchema = z.object({
         url: z.string().url()
       })
     ),
-    audit_log_url: z.string().url().nullable(),
-    submission_url: z.string().url(),
+    audit_log_url: z.string().url().nullable().optional(),
+    submission_url: z.string().url().optional(),
     template: z.object({
-      id: z.number(),
-      name: z.string(),
-      external_id: z.string().nullable(),
+      id: z.number().optional(),
+      name: z.string().optional(),
+      external_id: z.string().nullable().optional(),
       created_at: z.string().datetime(),
       updated_at: z.string().datetime(),
-      folder_name: z.string().nullable()
+      folder_name: z.string().nullable().optional()
     }),
     submission: z.object({
       id: z.number(),
       created_at: z.string().datetime(),
-      audit_log_url: z.string().url().nullable(),
-      combined_document_url: z.string().url().nullable(),
+      audit_log_url: z.string().url().nullable().optional(),
+      combined_document_url: z.string().url().nullable().optional(),
       status: z.string(),
       url: z.string().url()
     })
