@@ -2,10 +2,16 @@ import { z } from 'zod'
 
 // Define DocuSeal specific event types
 export const DocuSealEventTypeSchema = z.enum([
+  'form.viewed',
+  'form.started',
   'form.completed',
-  'form.opened',
   'form.declined',
-  'form.created'
+  'submission.created',
+  'submission.completed',
+  'submission.expired',
+  'submission.archived',
+  'template.created',
+  'template.updated'
 ])
 
 export type DocuSealEventType = z.infer<typeof DocuSealEventTypeSchema>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import axios from 'axios'
-import type { DocuSealWebhookPayload } from '../../routes/webhook/validate'
+import type { DocuSealWebhookPayload } from '../../routes/public/validate'
 
 // Mock axios and docuseal
 vi.mock('axios')
@@ -82,7 +82,7 @@ const sampleFormCompletedPayload: DocuSealWebhookPayload = {
  */
 const sampleFormOpenedPayload: DocuSealWebhookPayload = {
   ...sampleFormCompletedPayload,
-  event_type: 'form.opened',
+  event_type: 'form.viewed',
   data: {
     ...sampleFormCompletedPayload.data,
     status: 'opened',

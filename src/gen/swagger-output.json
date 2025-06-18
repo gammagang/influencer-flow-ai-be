@@ -866,25 +866,6 @@
         }
       }
     },
-    "/api/webhook/docuseal": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/email/test": {
       "post": {
         "description": "",
@@ -1074,7 +1055,7 @@
         }
       }
     },
-    "/public/": {
+    "/public/docuseal/webhook": {
       "post": {
         "description": "",
         "parameters": [
