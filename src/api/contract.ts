@@ -1,5 +1,6 @@
 import { sql } from '@/libs/db'
 import { log } from '@/libs/logger'
+import { DocuSealWebhookPayload } from '@/routes/public/validate'
 import { CreateSubmissionResponse } from '@docuseal/api'
 
 /**
@@ -9,7 +10,7 @@ export interface Contract {
   id: number
   campaign_creator_id: number
   pdf_url: string | null
-  status: string
+  status: DocuSealWebhookPayload['event_type'] | 'contract.created'
   sent_at: Date
   signed_by_brand_at: Date | null
   signed_by_creator_at: Date | null
@@ -51,7 +52,7 @@ export async function createContract(data: {
 /**
  * Gets a contract by id
  */
-export async function getContractById(id: number) {
+export async function getContractById(id: number | string) {
   try {
     const result = await sql<Contract[]>`
       SELECT * FROM contract
@@ -86,28 +87,29 @@ export async function getContractsByCampaignCreatorId(campaignCreatorId: number 
 /**
  * Updates a contract's status
  */
-export async function updateContractStatus(id: number, status: string) {
-  try {
-    const result = await sql<Contract[]>`
+export async function updateContractStatus(
+  id: string,
+  status: DocuSealWebhookPayload['event_type'],
+  role: 'Brand' | 'Creator'
+  // docs: { name: string; url: string }[] = []
+) {
+  const currentContract = await getContractById(id)
+  if (!currentContract) throw new Error(`Contract with ID ${id} not found`)
+
+  const isSigned = status === 'form.completed' || status === 'submission.completed'
+
+  const result = await sql<Contract[]>`
       UPDATE contract
       SET status = ${status},
-          signed_by_brand_at = ${status === 'signed_by_brand' ? sql`NOW()` : null},
-          signed_by_creator_at = ${status === 'signed_by_creator' ? sql`NOW()` : null}
+          signed_by_brand_at = ${role === 'Brand' && isSigned ? sql`NOW()` : null},
+          signed_by_creator_at = ${role === 'Creator' && isSigned ? sql`NOW()` : null}
       WHERE id = ${id}
       RETURNING *
     `
 
-    return result.length ? result[0] : null
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    log.error(`Error updating contract status for ID ${id}:`, error)
-    throw new Error(`Failed to update contract status: ${errorMessage}`)
-  }
+  return result[0]
 }
 
-/**
- * Updates contract meta information
- */
 export async function addDocusealSubmissionToContract(
   id: number,
   docusealSubmission: CreateSubmissionResponse
@@ -125,46 +127,4 @@ export async function addDocusealSubmissionToContract(
     `
 
   return result[0]
-}
-
-/**
- * Marks a contract as signed by brand or creator
- */
-export async function markContractSigned(id: number, signedBy: 'brand' | 'creator') {
-  try {
-    // const fieldName = signedBy === 'brand' ? 'signed_by_brand_at' : 'signed_by_creator_at'
-
-    let query
-    if (signedBy === 'brand') {
-      query = sql<Contract[]>`
-        UPDATE contract
-        SET signed_by_brand_at = NOW()
-        WHERE id = ${id}
-        RETURNING *
-      `
-    } else {
-      query = sql<Contract[]>`
-        UPDATE contract
-        SET signed_by_creator_at = NOW()
-        WHERE id = ${id}
-        RETURNING *
-      `
-    }
-
-    const result = await query
-
-    // If both parties have signed, update status to 'completed'
-    const contract = result.length ? result[0] : null
-
-    if (contract && contract.signed_by_brand_at && contract.signed_by_creator_at) {
-      await updateContractStatus(id, 'completed')
-      return await getContractById(id)
-    }
-
-    return contract
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    log.error(`Error marking contract ${id} as signed by ${signedBy}:`, error)
-    throw new Error(`Failed to mark contract as signed: ${errorMessage}`)
-  }
 }

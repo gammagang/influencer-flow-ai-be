@@ -7,6 +7,7 @@ import { elevenLabsRouter } from '../elevenlabs/route'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { DocuSealWebhookSchema } from './validate'
+import { updateContractStatus } from '@/api/contract'
 
 const router = Router()
 // NOTE: All public routes will have no JWT middleware
@@ -79,45 +80,25 @@ router.post('/docuseal/webhook', async (req: Request, res: Response) => {
 
   // Extract important information
   const { event_type, timestamp, data } = validatedPayload
-  const { email, status, role, documents, template } = data
+  const { email, status, role, documents, values } = data
+  log.info(
+    `DocuSeal webhook received: ${event_type} for role ${role}, with email '${email}' and status ${status}`
+  )
+  log.info(`Values`, values)
+
+  const contractId = values.find((v) => v.field === 'contractId')?.value
+  if (!contractId)
+    throw new NotFoundError(
+      'Contract ID not found in webhook payload',
+      `No contractId found in values: ${JSON.stringify(values)}`,
+      req.path
+    )
+
+  await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
 
   // Log the webhook event
-  log.info(`DocuSeal webhook received: ${event_type} for ${email} with status ${status}`)
 
-  // Process the webhook based on event type
-  switch (event_type) {
-    case 'form.completed':
-      // Handle completed form (signed contract)
-      log.info(`Contract completed by ${role}: ${email}`)
-      log.info(`Template: ${template.name}, Document: ${documents[0]?.name || 'Unknown'}`)
-
-      // TODO: In a production environment, you would:
-      // 1. Update the contract status in your database
-      // 2. Notify relevant parties
-      // 3. Store document URLs for future reference
-
-      // Example processing code:
-      // await contractService.updateContractStatus(data.external_id, 'signed');
-      // await notificationService.notifyContractSigned(data.email, data.template.name);
-
-      break
-
-    case 'form.viewed':
-      // Handle when the form is opened but not yet completed
-      log.info(`Contract opened by ${role}: ${email}`)
-      // TODO: Update contract status to 'viewed'
-      break
-
-    case 'form.declined':
-      // Handle declined contracts
-      log.info(`Contract declined by ${role}: ${email}`)
-      log.info(`Decline reason: ${data.decline_reason || 'No reason provided'}`)
-      // TODO: Update contract status to 'declined'
-      break
-
-    default:
-      log.info(`Unhandled DocuSeal event type: ${event_type}`)
-  }
+  // Update Contract state in the database
 
   // Return success response
   SuccessResponse.send({
