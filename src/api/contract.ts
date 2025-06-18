@@ -70,7 +70,7 @@ export async function getContractById(id: number) {
 /**
  * Gets contracts by campaign creator id
  */
-export async function getContractsByCampaignCreatorId(campaignCreatorId: number) {
+export async function getContractsByCampaignCreatorId(campaignCreatorId: number | string) {
   try {
     return await sql<Contract[]>`
       SELECT * FROM contract

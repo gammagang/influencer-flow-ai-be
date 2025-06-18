@@ -333,7 +333,7 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     })
 
     // Add Docuseal Submission to contract Meta
-    await addDocusealSubmissionToContract(contract.id, submission)
+    contract = await addDocusealSubmissionToContract(contract.id, submission)
 
     // Update mapping to record that contract was sent
     await updateCampaignCreatorState(ccMappingId, 'waiting for signature')
@@ -341,10 +341,7 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     // Return both the submission and the created contract
     SuccessResponse.send({
       res,
-      data: {
-        submission,
-        contract
-      }
+      data: contract
     })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
