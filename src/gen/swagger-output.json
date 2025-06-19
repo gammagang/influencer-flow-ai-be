@@ -712,6 +712,60 @@
         }
       }
     },
+    "/api/campaign-creator/{ccMappingId}/negotiations": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "ccMappingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/campaign-creator/negotiation/{negotiationId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "negotiationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/contract/{contractId}": {
       "get": {
         "description": "",
@@ -1116,13 +1170,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "data": {
-                    "example": "any"
-                  },
-                  "type": {
-                    "example": "any"
-                  },
-                  "event_timestamp": {
+                  "length": {
                     "example": "any"
                   }
                 }
