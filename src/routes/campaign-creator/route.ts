@@ -434,8 +434,8 @@ router.get('/campaign/:campaignId/lifecycle-status', async (req: Request, res: R
     'discovered',
     'outreached',
     'call complete',
-    'waiting for contract',
     'waiting for signature',
+    'signatures complete',
     'onboarded',
     'fulfilled'
   ]

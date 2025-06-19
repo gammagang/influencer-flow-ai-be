@@ -1,13 +1,16 @@
 import { Request, Response, Router } from 'express'
 
-import { getCampaignCreatorWithCampaignDetails } from '@/api/campaign-creator'
+import {
+  getCampaignCreatorWithCampaignDetails,
+  updateCampaignCreatorState
+} from '@/api/campaign-creator'
 import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { elevenLabsRouter } from '../elevenlabs/route'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { DocuSealWebhookSchema } from './validate'
-import { updateContractStatus, updateSubmissionStatus } from '@/api/contract'
+import { Contract, updateContractStatus, updateSubmissionStatus } from '@/api/contract'
 
 const router = Router()
 // NOTE: All public routes will have no JWT middleware
@@ -100,14 +103,24 @@ router.post('/docuseal/webhook', async (req: Request, res: Response) => {
       req.path
     )
 
-  if (contractId) await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
+  let contract: Contract | null = null
+
+  if (contractId)
+    contract = await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
 
   if (!contractId && submissionId)
-    await updateSubmissionStatus(submissionId, event_type, role as 'Brand' | 'Creator')
+    contract = await updateSubmissionStatus(submissionId, event_type, role as 'Brand' | 'Creator')
 
-  // Log the webhook event
+  if (!contract?.campaign_creator_id)
+    throw new NotFoundError(
+      'Could not find creator-campaign linked to contract',
+      'Could not find creator-campaign linked to contract',
+      req.path
+    )
 
-  // Update Contract state in the database
+  // Update the campaign-creator mapping status based on the event type
+  if (event_type === 'submission.completed')
+    await updateCampaignCreatorState(contract.campaign_creator_id.toString(), 'signatures complete')
 
   // Return success response
   SuccessResponse.send({
