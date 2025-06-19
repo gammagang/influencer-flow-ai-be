@@ -14,7 +14,6 @@ type DocuSealField = {
 
 // Field names map (must match exactly with DocuSeal template field names)
 const FieldNames = {
-  contractId: 'contractId',
   // Campaign fields
   campaignName: 'campaignName',
   campaignStartDate: 'campaignStartDate',
@@ -57,7 +56,6 @@ export type ContractInput = {
   }
   deliverables: string
   compensation: {
-    currency: string
     amount: number | string
     paymentMethod: string
   }
@@ -69,28 +67,32 @@ export type ContractInput = {
  * @returns The created submission response from DocuSeal
  */
 export const sendContractViaEmail = async (contractData: ContractInput) => {
-  // Format deliverables as a bulleted list string
-  const deliverablesText = contractData.deliverables
   const contractId = contractData.contractId.toString()
-
-  // Format compensation amount with currency
-  // const formattedAmount = `${contractData.compensation.currency} ${contractData.compensation.amount}`
 
   // Brand-specific fields
   const brandFields: DocuSealField[] = [
+    { name: FieldNames.campaignName, default_value: contractData.campaign.name, readonly: true },
     {
-      name: FieldNames.contractId,
-      default_value: contractId,
+      name: FieldNames.campaignStartDate,
+      default_value: contractData.campaign.startDate,
       readonly: true
     },
-    { name: FieldNames.campaignName, default_value: contractData.campaign.name, readonly: true },
-    // { name: FieldNames.campaignStartDate, default_value: contractData.campaign.startDate },
-    // { name: FieldNames.campaignEndDate, default_value: contractData.campaign.endDate },
-    // { name: FieldNames.brandName, default_value: contractData.brand.name },
-    // { name: FieldNames.brandContactPerson, default_value: contractData.brand.contactPerson },
-    // { name: FieldNames.brandEmail, default_value: contractData.brand.email },
-    { name: FieldNames.deliverables, default_value: deliverablesText }
-    // { name: FieldNames.compensation, default_value: formattedAmount }
+    {
+      name: FieldNames.campaignEndDate,
+      default_value: contractData.campaign.endDate,
+      readonly: true
+    },
+    { name: FieldNames.brandName, default_value: contractData.brand.name, readonly: true },
+    {
+      name: FieldNames.brandContactPerson,
+      default_value: contractData.brand.contactPerson
+    },
+    { name: FieldNames.brandEmail, default_value: contractData.brand.email, readonly: true },
+    { name: FieldNames.deliverables, default_value: contractData.deliverables },
+    {
+      name: FieldNames.compensation,
+      default_value: contractData.compensation.amount.toString()
+    }
   ]
 
   // Creator-specific fields
