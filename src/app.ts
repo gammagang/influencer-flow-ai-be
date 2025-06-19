@@ -29,7 +29,7 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl requests)
       if (!origin) return callback(null, true)
 
-      if (!allowedOrigins.includes(origin)) callback(null, true)
+      if (allowedOrigins.includes(origin)) callback(null, true)
       else {
         console.log(`Origin ${origin} not allowed by CORS`)
         callback(null, false)
@@ -37,7 +37,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'elevenlabs-signature']
   })
 )
 

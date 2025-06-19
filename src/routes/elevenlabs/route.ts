@@ -15,14 +15,15 @@ const elevenLabsRouter = Router()
 elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res) => {
   log.info('ElevenLabs webhook handler started!')
   try {
-    const { data, type, event_timestamp } = req.body
-    log.debug('Debug log. Not really used. Need to parse because of raw endpoint', {
+    // Parse the raw body (Buffer) to JSON
+    const parsedBody = JSON.parse(req.body.toString())
+    const { data, type, event_timestamp } = parsedBody
+
+    log.debug('Debug log. Parsed raw body from Buffer', {
       data,
       type,
       event_timestamp
     })
-
-    const parsedBody = JSON.parse(req.body.toString())
 
     // Store the webhook request body JSON in a file
     try {
@@ -56,7 +57,8 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
       status: validatedData.data.status,
       transcriptSummary: validatedData.data.analysis.transcript_summary,
       callSuccessful: validatedData.data.analysis.call_successful,
-      transcriptLength: validatedData.data.transcript.length
+      transcriptLength: validatedData.data.transcript.length,
+      dataCollectionResults: JSON.stringify(validatedData.data.analysis.data_collection_results)
     }) // Process transcript messages (filter out null messages)
 
     const messages = validatedData.data.transcript
@@ -92,9 +94,75 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
 
     // Extract negotiation details from data collection results if available
     const dataCollectionResults = validatedData.data.analysis.data_collection_results
-    const deliverables = dataCollectionResults?.deliverables || null
-    const agreedPrice = dataCollectionResults?.agreed_price || dataCollectionResults?.price || null
-    const timeline = dataCollectionResults?.timeline || dataCollectionResults?.deadline || null
+    log.info('Data collection results:', {
+      dataCollectionResults: JSON.stringify(dataCollectionResults),
+      campaignCreatorId,
+      conversationId
+    })
+
+    // Safely extract deliverables value
+    let deliverables = null
+    const deliverablesData = dataCollectionResults?.deliverables
+    if (deliverablesData !== null && deliverablesData !== undefined) {
+      if (typeof deliverablesData === 'string') {
+        deliverables = deliverablesData
+      } else if (typeof deliverablesData === 'object' && deliverablesData !== null) {
+        deliverables =
+          deliverablesData.value ||
+          deliverablesData.description ||
+          deliverablesData.deliverables ||
+          null
+      }
+    }
+
+    // Safely extract and convert agreed_price to numeric value
+    let agreedPrice = null
+    const priceValue = dataCollectionResults?.agreed_price || dataCollectionResults?.price
+    if (priceValue !== null && priceValue !== undefined) {
+      // If it's already a number, use it directly
+      if (typeof priceValue === 'number') {
+        agreedPrice = priceValue
+      }
+      // If it's a string that can be converted to number
+      else if (typeof priceValue === 'string' && !isNaN(Number(priceValue))) {
+        agreedPrice = Number(priceValue)
+      }
+      // If it's an object, try to extract numeric value from common properties
+      else if (typeof priceValue === 'object' && priceValue !== null) {
+        const objectPrice =
+          priceValue.amount || priceValue.value || priceValue.price || priceValue.cost
+        if (typeof objectPrice === 'number') {
+          agreedPrice = objectPrice
+        } else if (typeof objectPrice === 'string') {
+          // Try direct conversion first
+          if (!isNaN(Number(objectPrice))) {
+            agreedPrice = Number(objectPrice)
+          } else {
+            // Extract numeric value from text like "four hundred and ninety dollars"
+            const numericMatch = objectPrice.match(/\d+(?:\.\d+)?/)
+            if (numericMatch) {
+              agreedPrice = parseFloat(numericMatch[0])
+            }
+          }
+        }
+      }
+    }
+
+    // Safely extract timeline value
+    let timeline = null
+    const timelineData = dataCollectionResults?.timeline || dataCollectionResults?.deadline
+    if (timelineData !== null && timelineData !== undefined) {
+      if (typeof timelineData === 'string') {
+        timeline = timelineData
+      } else if (typeof timelineData === 'object' && timelineData !== null) {
+        timeline =
+          timelineData.value ||
+          timelineData.description ||
+          timelineData.timeline ||
+          timelineData.deadline ||
+          null
+      }
+    }
 
     try {
       // Debug logging to identify any undefined values
@@ -102,8 +170,11 @@ elevenLabsRouter.post('/post-call', validateElevenLabsSignature, async (req, res
         campaignCreatorId,
         callOutcome,
         deliverables,
+        deliverablesType: typeof deliverables,
         agreedPrice,
+        agreedPriceType: typeof agreedPrice,
         timeline,
+        timelineType: typeof timeline,
         transcriptSummary: validatedData.data.analysis.transcript_summary
       }) // Store negotiation attempt in database
       const result = await sql`
@@ -197,7 +268,9 @@ elevenLabsRouter.put('/store-meta/:id', async (req, res) => {
   try {
     // Get the ID from URL parameters
     const negotiationAttemptId = req.params.id
-    const bodyData = req.body
+
+    // Parse the raw body (Buffer) to JSON since we're using express.raw() middleware
+    const bodyData = req.body instanceof Buffer ? JSON.parse(req.body.toString()) : req.body
 
     if (!negotiationAttemptId || isNaN(Number(negotiationAttemptId))) {
       log.error('Invalid or missing negotiation attempt ID', {

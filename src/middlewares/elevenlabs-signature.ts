@@ -49,14 +49,18 @@ export const validateElevenLabsSignature = (req: Request, res: Response, next: N
     }
 
     // Create the message to sign: "timestamp.rawBody"
-    const message = `${timestamp}.${req.body}`
+    // req.body is a Buffer due to express.raw() middleware
+    const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : req.body
+    const message = `${timestamp}.${rawBody}`
     const digest = 'v0=' + crypto.createHmac('sha256', secret).update(message).digest('hex')
 
     if (signatureValue !== digest) {
       log.error('Invalid ElevenLabs signature', {
         expected: digest,
         received: signatureValue,
-        message: message.substring(0, 100) + '...' // Log first 100 chars for debugging
+        message: message.substring(0, 100) + '...', // Log first 100 chars for debugging
+        timestamp,
+        rawBodyLength: rawBody.length
       })
       return res.status(401).json({ error: 'Request unauthorized' })
     }
