@@ -80,7 +80,7 @@ router.post('/docuseal/webhook', async (req: Request, res: Response) => {
 
   // Extract important information
   const { event_type, timestamp, data } = validatedPayload
-  const { email, status, role, documents, values } = data
+  const { email, status, role, values } = data
   log.info(
     `DocuSeal webhook received: ${event_type} for role ${role}, with email '${email}' and status ${status}`
   )
