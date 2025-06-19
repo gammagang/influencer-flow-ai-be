@@ -80,17 +80,17 @@ router.post('/docuseal/webhook', async (req: Request, res: Response) => {
 
   // Extract important information
   const { event_type, timestamp, data } = validatedPayload
-  const { email, status, role, values } = data
+  const { email, status, role, documents, metadata = {} } = data
   log.info(
     `DocuSeal webhook received: ${event_type} for role ${role}, with email '${email}' and status ${status}`
   )
-  log.info(`Values`, values)
+  log.info(`metadata & documents`, { metadata, documents })
 
-  const contractId = values.find((v) => v.field === 'contractId')?.value
+  const contractId = metadata.contractId
   if (!contractId)
     throw new NotFoundError(
       'Contract ID not found in webhook payload',
-      `No contractId found in values: ${JSON.stringify(values)}`,
+      `No contractId found in metadata: ${JSON.stringify(metadata)}`,
       req.path
     )
 
