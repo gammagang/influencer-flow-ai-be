@@ -5,7 +5,6 @@ import { log } from './logger'
 docuseal.configure({ key: configs.docuseal.apiKey, url: configs.docuseal.url })
 const DOCUSEAL_TEMPLATE_ID = parseInt(configs.docuseal.templateId)
 
-// Extract DocuSeal field type for type safety
 type DocuSealField = {
   name: string
   default_value: string
@@ -13,13 +12,14 @@ type DocuSealField = {
 }
 
 // Field names map (must match exactly with DocuSeal template field names)
+/**
+ * @docs Refer [Docuseal Prod](https://docuseal-0deg.onrender.com/templates/1/edit ) for exact field names
+ */
 const FieldNames = {
-  // Campaign fields
+  // Brand fields
   campaignName: 'campaignName',
   campaignStartDate: 'campaignStartDate',
   campaignEndDate: 'campaignEndDate',
-
-  // Brand fields
   brandName: 'brandName',
   brandContactPerson: 'brandContactPerson',
   brandEmail: 'brandEmail',
@@ -37,12 +37,11 @@ const FieldNames = {
 } as const
 
 export type ContractInput = {
-  /** uuid of contract */
   contractId: number
   campaign: {
     name: string
-    startDate: string // ISO format: "YYYY-MM-DD"
-    endDate: string // ISO format: "YYYY-MM-DD"
+    startDate: string
+    endDate: string
   }
   brand: {
     name: string
@@ -102,10 +101,9 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
     { name: FieldNames.creatorEmail, default_value: contractData.creator.email }
   ]
 
-  log.debug('fields:', { brandFields, creatorFields })
+  log.info('fields:', { brandFields, creatorFields })
 
   const submitters = [
-    // Brand submitter
     {
       name: contractData.brand.contactPerson,
       email: contractData.brand.email,
@@ -114,11 +112,10 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
       fields: brandFields,
       metadata: { contractId }
     },
-    // Creator submitter
     {
       name: contractData.creator.name,
       // email: contractData.creator.email,
-      email: 'sojos19654@finfave.com',
+      email: 'gammagang100x@gmail.com', // For testing purposes, use a fixed email
       send_email: true,
       role: 'Creator',
       fields: creatorFields,
