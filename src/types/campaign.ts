@@ -20,8 +20,8 @@ export interface CampaignCreator extends Creator {
     | 'discovered'
     | 'outreached'
     | 'call complete'
-    | 'waiting for contract'
     | 'waiting for signature'
+    | 'signatures complete'
     | 'fulfilled'
   assigned_budget?: number
   last_state_change_at?: string
