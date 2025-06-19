@@ -68,6 +68,20 @@ export async function getContractById(id: number | string) {
 }
 
 /**
+ * Gets a contract by submissionId
+ */
+export async function getContractBySubmissionId(submissionId: number | string) {
+  // Convert submissionId to string for consistent comparison
+  const submissionIdStr = submissionId.toString()
+
+  const result = await sql<Contract[]>`
+      SELECT * FROM contract c
+      WHERE c.meta->'docusealSubmission'->>'id' = ${submissionIdStr}
+    `
+  return result.length ? result[0] : null
+}
+
+/**
  * Gets contracts by campaign creator id
  */
 export async function getContractsByCampaignCreatorId(campaignCreatorId: number | string) {
@@ -104,6 +118,30 @@ export async function updateContractStatus(
           signed_by_brand_at = ${role === 'Brand' && isSigned ? sql`NOW()` : null},
           signed_by_creator_at = ${role === 'Creator' && isSigned ? sql`NOW()` : null}
       WHERE id = ${id}
+      RETURNING *
+    `
+
+  return result[0]
+}
+/**
+ * Updates a contract submission's status
+ */
+export async function updateSubmissionStatus(
+  submissionId: string | number,
+  status: DocuSealWebhookPayload['event_type'],
+  role: 'Brand' | 'Creator'
+) {
+  const contract = await getContractBySubmissionId(submissionId)
+  if (!contract) throw new Error(`Contract with submission ID ${submissionId} not found`)
+
+  const isSigned = status === 'form.completed' || status === 'submission.completed'
+
+  const result = await sql<Contract[]>`
+      UPDATE contract
+      SET status = ${status},
+          signed_by_brand_at = ${role === 'Brand' && isSigned ? sql`NOW()` : null},
+          signed_by_creator_at = ${role === 'Creator' && isSigned ? sql`NOW()` : null}
+      WHERE id = ${contract.id}
       RETURNING *
     `
 

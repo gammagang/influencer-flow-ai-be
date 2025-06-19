@@ -1,13 +1,16 @@
 import { Request, Response, Router } from 'express'
 
-import { getCampaignCreatorWithCampaignDetails } from '@/api/campaign-creator'
+import {
+  getCampaignCreatorWithCampaignDetails,
+  updateCampaignCreatorState
+} from '@/api/campaign-creator'
 import { NotFoundError } from '@/errors/not-found-error'
 import { SuccessResponse } from '@/libs/success-response'
 import { elevenLabsRouter } from '../elevenlabs/route'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { DocuSealWebhookSchema } from './validate'
-import { updateContractStatus } from '@/api/contract'
+import { Contract, updateContractStatus, updateSubmissionStatus } from '@/api/contract'
 
 const router = Router()
 // NOTE: All public routes will have no JWT middleware
@@ -77,28 +80,47 @@ router.get('/campaign-creator-details/:ccMappingId', async (req: Request, res: R
 router.post('/docuseal/webhook', async (req: Request, res: Response) => {
   // Validate the incoming webhook payload
   const validatedPayload = validateRequest(DocuSealWebhookSchema, req.body, req.path)
+  log.info(`Webhook Payload`, validatedPayload)
 
   // Extract important information
   const { event_type, timestamp, data } = validatedPayload
-  const { email, status, role, documents, metadata = {} } = data
+  const { email, status, role, metadata = {} } = data
   log.info(
     `DocuSeal webhook received: ${event_type} for role ${role}, with email '${email}' and status ${status}`
   )
-  log.info(`metadata & documents`, { metadata, documents })
 
   const contractId = metadata.contractId
-  if (!contractId)
+  const submissionId = event_type.includes('submission')
+    ? data.id
+    : event_type.includes('form')
+      ? data.submission_id
+      : null
+
+  if (!contractId && !submissionId)
     throw new NotFoundError(
       'Contract ID not found in webhook payload',
       `No contractId found in metadata: ${JSON.stringify(metadata)}`,
       req.path
     )
 
-  await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
+  let contract: Contract | null = null
 
-  // Log the webhook event
+  if (contractId)
+    contract = await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
 
-  // Update Contract state in the database
+  if (!contractId && submissionId)
+    contract = await updateSubmissionStatus(submissionId, event_type, role as 'Brand' | 'Creator')
+
+  if (!contract?.campaign_creator_id)
+    throw new NotFoundError(
+      'Could not find creator-campaign linked to contract',
+      'Could not find creator-campaign linked to contract',
+      req.path
+    )
+
+  // Update the campaign-creator mapping status based on the event type
+  if (event_type === 'submission.completed')
+    await updateCampaignCreatorState(contract.campaign_creator_id.toString(), 'signatures complete')
 
   // Return success response
   SuccessResponse.send({

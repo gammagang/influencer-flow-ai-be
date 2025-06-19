@@ -14,7 +14,6 @@ type DocuSealField = {
 
 // Field names map (must match exactly with DocuSeal template field names)
 const FieldNames = {
-  contractId: 'contractId',
   // Campaign fields
   campaignName: 'campaignName',
   campaignStartDate: 'campaignStartDate',
@@ -57,7 +56,6 @@ export type ContractInput = {
   }
   deliverables: string
   compensation: {
-    currency: string
     amount: number | string
     paymentMethod: string
   }
@@ -69,34 +67,39 @@ export type ContractInput = {
  * @returns The created submission response from DocuSeal
  */
 export const sendContractViaEmail = async (contractData: ContractInput) => {
-  // Format deliverables as a bulleted list string
-  const deliverablesText = contractData.deliverables
-
-  // Format compensation amount with currency
-  // const formattedAmount = `${contractData.compensation.currency} ${contractData.compensation.amount}`
+  const contractId = contractData.contractId.toString()
 
   // Brand-specific fields
   const brandFields: DocuSealField[] = [
+    { name: FieldNames.campaignName, default_value: contractData.campaign.name, readonly: true },
     {
-      name: FieldNames.contractId,
-      default_value: contractData.contractId.toString(),
+      name: FieldNames.campaignStartDate,
+      default_value: contractData.campaign.startDate,
       readonly: true
     },
-    { name: FieldNames.campaignName, default_value: contractData.campaign.name, readonly: true },
-    // { name: FieldNames.campaignStartDate, default_value: contractData.campaign.startDate },
-    // { name: FieldNames.campaignEndDate, default_value: contractData.campaign.endDate },
-    // { name: FieldNames.brandName, default_value: contractData.brand.name },
-    // { name: FieldNames.brandContactPerson, default_value: contractData.brand.contactPerson },
-    // { name: FieldNames.brandEmail, default_value: contractData.brand.email },
-    { name: FieldNames.deliverables, default_value: deliverablesText }
-    // { name: FieldNames.compensation, default_value: formattedAmount }
+    {
+      name: FieldNames.campaignEndDate,
+      default_value: contractData.campaign.endDate,
+      readonly: true
+    },
+    { name: FieldNames.brandName, default_value: contractData.brand.name },
+    {
+      name: FieldNames.brandContactPerson,
+      default_value: contractData.brand.contactPerson
+    },
+    { name: FieldNames.brandEmail, default_value: contractData.brand.email },
+    { name: FieldNames.deliverables, default_value: contractData.deliverables },
+    {
+      name: FieldNames.compensation,
+      default_value: contractData.compensation.amount.toString()
+    }
   ]
 
   // Creator-specific fields
   const creatorFields: DocuSealField[] = [
-    // { name: FieldNames.creatorName, default_value: contractData.creator.name },
-    // { name: FieldNames.creatorInstaHandle, default_value: contractData.creator.instaHandle },
-    // { name: FieldNames.creatorEmail, default_value: contractData.creator.email }
+    { name: FieldNames.creatorName, default_value: contractData.creator.name },
+    { name: FieldNames.creatorInstaHandle, default_value: contractData.creator.instaHandle },
+    { name: FieldNames.creatorEmail, default_value: contractData.creator.email }
   ]
 
   log.debug('fields:', { brandFields, creatorFields })
@@ -108,26 +111,19 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
       email: contractData.brand.email,
       send_email: false, // The brand owner can sign directly from the app
       role: 'Brand',
-      fields: [
-        ...brandFields
-        // Show creator fields as read-only to brand
-        // ...creatorFields.map((field) => ({ ...field, readonly: true }))
-      ],
-      metadata: { contractId: contractData.contractId.toString() }
-    }
+      fields: brandFields,
+      metadata: { contractId }
+    },
     // Creator submitter
-    // {
-    //   name: contractData.creator.name,
-    //   // email: contractData.creator.email,
-    //   email: 'lopabi4912@ethsms.com', //TODO: MOCK -> Change later
-    //   send_email: true,
-    //   role: 'Creator'
-    //   // fields: [
-    //   //   // Show brand fields as read-only to creator
-    //   //   ...brandFields.map((field) => ({ ...field, readonly: true })),
-    //   //   ...creatorFields
-    //   // ]
-    // }
+    {
+      name: contractData.creator.name,
+      // email: contractData.creator.email,
+      email: 'sojos19654@finfave.com',
+      send_email: true,
+      role: 'Creator',
+      fields: creatorFields,
+      metadata: { contractId }
+    }
   ]
 
   log.info('Creating DocuSeal submission with fields:', submitters)

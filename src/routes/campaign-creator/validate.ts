@@ -24,8 +24,8 @@ export const UpdateCampaignCreatorLinkSchema = z.object({
       'discovered',
       'outreached',
       'call complete',
-      'waiting for contract',
       'waiting for signature',
+      'signatures complete',
       'fulfilled'
     ])
     .optional(),

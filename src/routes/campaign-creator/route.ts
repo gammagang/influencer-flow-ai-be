@@ -31,6 +31,7 @@ import {
 } from './validate'
 import configs from '@/configs'
 import { sendContractViaEmail } from '@/libs/docuseal'
+import { formatDate } from '@/libs/utils'
 import { negotiationRouter } from './negotiation'
 const router = Router()
 
@@ -182,7 +183,6 @@ router.get('/:ccMappingId/outreach/preview', async (req: Request, res: Response)
 
     // Generate email content using AI
     const generatedEmail = await generateUserOutreachEmail(emailData)
-    console.log(' generatedEmail:', generatedEmail)
 
     SuccessResponse.send({
       res,
@@ -297,18 +297,6 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
       status: 'contract.created'
     })
 
-    // Helper function to format date in YYYY-MM-DD format
-    const formatDate = (date: string | null) => {
-      if (!date) return new Date().toISOString().split('T')[0]
-
-      try {
-        return new Date(date).toISOString().split('T')[0]
-      } catch (e) {
-        console.error('Error formatting date:', e)
-        return new Date().toISOString().split('T')[0]
-      }
-    }
-
     const brandEmail = req.user?.email ?? ''
     const brandName = req.user?.user_metadata?.brand_name ?? 'Your Brand'
     const brandContactPerson = req.user?.user_metadata?.contact_name ?? ''
@@ -322,7 +310,7 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     const submission = await sendContractViaEmail({
       contractId: contract.id,
       campaign: {
-        name: mapping.campaign_name || 'Untitled Campaign',
+        name: mapping.campaign_name,
         startDate: formatDate(mapping.campaign_start_date),
         endDate: formatDate(mapping.campaign_end_date)
       },
@@ -330,7 +318,6 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
       creator: { name: creatorName, instaHandle, email: creatorEmail },
       deliverables: deliverables,
       compensation: {
-        currency: 'INR',
         amount: mapping.assigned_budget || 0,
         paymentMethod: 'Bank Transfer'
       }
@@ -439,8 +426,8 @@ router.get('/campaign/:campaignId/lifecycle-status', async (req: Request, res: R
     'discovered',
     'outreached',
     'call complete',
-    'waiting for contract',
     'waiting for signature',
+    'signatures complete',
     'onboarded',
     'fulfilled'
   ]

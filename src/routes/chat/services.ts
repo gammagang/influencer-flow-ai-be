@@ -956,8 +956,8 @@ export async function executeCampaignStatus(user: UserJwt, params?: { campaignId
         'discovered',
         'outreached',
         'call complete',
-        'waiting for contract',
         'waiting for signature',
+        'signatures complete',
         'onboarded',
         'fulfilled'
       ]
