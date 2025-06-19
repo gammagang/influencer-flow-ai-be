@@ -89,7 +89,8 @@ export async function generateUserOutreachEmail(candidate: Record<string, unknow
     messages,
     model: 'llama-3.1-8b-instant',
     response_format: { type: 'json_object' },
-    temperature: 0.7
+    temperature: 0.7,
+    max_tokens: 512 // Limit tokens to reduce usage
   })
 
   const mail = completion.choices[0].message.content
@@ -128,7 +129,8 @@ export async function generateEmailTemplate(templateData: Record<string, unknown
     messages,
     model: 'llama-3.1-8b-instant',
     response_format: { type: 'json_object' },
-    temperature: 0.7
+    temperature: 0.7,
+    max_tokens: 512 // Limit tokens to reduce usage
   })
 
   const mail = completion.choices[0].message.content

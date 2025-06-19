@@ -287,13 +287,20 @@ export async function executeCreateCampaignFromWebsite(
     }
   } catch (error) {
     log.error('Error in executeCreateCampaignFromWebsite:', error)
-    if (error instanceof Error) {
-      log.error('Error message:', error.message)
-      log.error('Error stack:', error.stack)
+
+    // Check if it's a service unavailable error (503) from Groq
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    if (errorMessage.includes('503') || errorMessage.includes('Service unavailable')) {
+      return {
+        success: false,
+        error:
+          'AI service is temporarily unavailable. Please try again in a few minutes or provide campaign details manually.'
+      }
     }
+
     return {
       success: false,
-      error: `Failed to analyze website for campaign creation: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Failed to analyze website for campaign creation: ${errorMessage}`
     }
   }
 }
@@ -1152,6 +1159,10 @@ export async function executeGetCampaignCreatorDetails(
   }
 }
 
+// Helper function to process creator details for a specific campaign
+// Note: processCreatorDetails and validateCampaignAccess functions have been moved to /services/core/campaign.ts
+// and are no longer needed here as the refactored functions use the core services directly
+
 interface CreateCampaignFromProfileParams {
   name: string
   description?: string
@@ -1184,13 +1195,7 @@ export async function executeCreateCampaignFromProfile(
     log.info('Creating campaign from brand profile with params:', params)
 
     // Step 0: Validate required parameters
-    if (
-      !params.name?.trim() ||
-      !params.startDate?.trim() ||
-      !params.endDate?.trim() ||
-      !params.deliverables?.length ||
-      params.deliverables.some((d) => !d?.trim())
-    ) {
+    if (!params.name || !params.startDate || !params.endDate || !params.deliverables?.length) {
       return {
         success: false,
         error:
@@ -1203,47 +1208,23 @@ export async function executeCreateCampaignFromProfile(
       params.startDate.includes('YYYY') ||
       params.endDate.includes('YYYY') ||
       params.startDate.includes('example') ||
-      params.endDate.includes('example') ||
-      params.startDate === '' ||
-      params.endDate === '' ||
-      params.startDate.length < 8 ||
-      params.endDate.length < 8
+      params.endDate.includes('example')
     ) {
       return {
         success: false,
-        error: 'Please provide actual dates in YYYY-MM-DD format, not placeholder values.'
+        error: 'Please provide actual dates, not placeholder values.'
       }
     }
 
-    // Validate name is not a placeholder or empty
+    // Validate name is not a placeholder
     if (
-      params.name.trim().length < 3 ||
       params.name.toLowerCase().includes('example') ||
       params.name.toLowerCase().includes('placeholder') ||
-      params.name.toLowerCase().includes('campaign name') ||
-      params.name.toLowerCase().includes('summer promotion') ||
-      params.name === ''
+      params.name.toLowerCase().includes('campaign name')
     ) {
       return {
         success: false,
-        error: 'Please provide an actual campaign name (at least 3 characters), not a placeholder.'
-      }
-    }
-
-    // Validate deliverables are not placeholders
-    const placeholderDeliverables = ['instagram post', 'story', 'reel', 'example']
-    const hasPlaceholderDeliverables = params.deliverables.some(
-      (d) =>
-        placeholderDeliverables.includes(d.toLowerCase().trim()) ||
-        d.toLowerCase().includes('example') ||
-        d.trim() === ''
-    )
-
-    if (hasPlaceholderDeliverables) {
-      return {
-        success: false,
-        error:
-          'Please provide specific deliverables, not placeholder values like "Instagram post" or "Story".'
+        error: 'Please provide an actual campaign name, not a placeholder.'
       }
     }
 

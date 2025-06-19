@@ -48,7 +48,7 @@ interface CreateCampaignFromProfileParams {
 // Enhanced model configuration based on Groq documentation
 const GROQ_MODELS = {
   // Primary tool-calling model - optimized for function calling and structured data
-  TOOL_USE: 'llama-3.1-8b-instant',
+  TOOL_USE: 'llama-3.3-70b-versatile',
   // Faster model for final response generation
   RESPONSE: 'llama-3.1-8b-instant',
   // Alternative models for fallback
@@ -64,9 +64,9 @@ const TEMPERATURE_CONFIG = {
 
 // Enhanced token limits based on model capabilities
 const TOKEN_LIMITS = {
-  TOOL_CALLING: 1024, // Conservative for tool calling
-  RESPONSE_GENERATION: 1024, // Adequate for responses
-  MAX_COMPLETION: 4096 // Maximum allowed
+  TOOL_CALLING: 512, // Reduced to conserve tokens
+  RESPONSE_GENERATION: 512, // Reduced to conserve tokens
+  MAX_COMPLETION: 1024 // Reduced maximum
 } as const
 
 // Enhanced error response structure following Groq recommendations
@@ -110,11 +110,22 @@ function validateAndCoerceNumericParam(
 function _handleGroqError(error: unknown, conversationId: string): GroqErrorResponse {
   log.error('Groq API error encountered:', error)
 
-  // Handle rate limit errors specifically (429)
-  if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+  // Handle rate limit errors specifically (429 or rate_limit_exceeded code)
+  if (
+    (error && typeof error === 'object' && 'status' in error && error.status === 429) ||
+    (error && typeof error === 'object' && 'code' in error && error.code === 'rate_limit_exceeded')
+  ) {
+    let waitTime = 'a few moments'
+    if (error && typeof error === 'object' && 'message' in error) {
+      const errorMessage = String(error.message)
+      const waitTimeMatch = errorMessage.match(/(\d+\.?\d*)s/)
+      if (waitTimeMatch) {
+        waitTime = `${Math.ceil(parseFloat(waitTimeMatch[1]))} seconds`
+      }
+    }
+
     return {
-      message:
-        "I've reached my API rate limit. Please try again in a few moments. If this persists, please contact support.",
+      message: `I've reached my API rate limit. Please try again in ${waitTime}. If this persists, please contact support.`,
       toolCalls: [],
       conversationId,
       isError: true,
@@ -342,30 +353,6 @@ export async function handleChatMessage(
             }
             case 'create_campaign_from_profile': {
               log.info('Executing create_campaign_from_profile with params:', parsedArgs)
-
-              // Pre-validation to prevent empty/placeholder calls
-              const profileParams = parsedArgs as Record<string, unknown>
-              if (
-                !profileParams.name ||
-                typeof profileParams.name !== 'string' ||
-                !profileParams.name.trim() ||
-                !profileParams.startDate ||
-                typeof profileParams.startDate !== 'string' ||
-                !profileParams.startDate.trim() ||
-                !profileParams.endDate ||
-                typeof profileParams.endDate !== 'string' ||
-                !profileParams.endDate.trim() ||
-                !Array.isArray(profileParams.deliverables) ||
-                profileParams.deliverables.length === 0
-              ) {
-                result = {
-                  success: false,
-                  error:
-                    'Campaign creation requires explicit user input. Please ask the user for campaign name, start date, end date, and deliverables before calling this tool.'
-                }
-                break
-              }
-
               result = await executeCreateCampaignFromProfile(
                 parsedArgs as unknown as CreateCampaignFromProfileParams,
                 user

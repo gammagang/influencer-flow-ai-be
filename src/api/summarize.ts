@@ -118,7 +118,7 @@ export const summarizeWebsite = async (url: string): Promise<SummarizeWebsiteRes
 
     const completion = await groq.chat.completions.create({
       messages,
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.2, // Lower temperature for more factual, structured responses
       max_tokens: 1500,
       response_format: { type: 'json_object' } // Ensure response is in JSON format

@@ -139,7 +139,7 @@ async function extractBrandProfileInfo(
 
     const completion = await groq.chat.completions.create({
       messages,
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.2, // Lower temperature for more factual analysis
       max_tokens: 2000,
       response_format: { type: 'json_object' }

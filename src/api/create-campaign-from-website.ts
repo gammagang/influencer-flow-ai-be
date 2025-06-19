@@ -16,11 +16,7 @@ const CAMPAIGN_EXTRACTION_PROMPT = `
   
   1. suggestedCampaignName: A catchy, descriptive campaign name based on the brand/product (e.g., "Nike Summer Athletics Campaign", "Starbucks Holiday Blend Promotion")
   2. brandName: The name of the brand/company
-  3. description: A comprehensive campaign description that includes:
-     - What the brand/product is about
-     - Campaign objectives and goals
-     - Target audience
-     - Key messaging points
+  3. description: A comprehensive campaign description as a single string that includes what the brand/product is about, campaign objectives and goals, target audience, and key messaging points (e.g., "Nike Summer Athletics Campaign promotes Nike's latest athletic wear collection targeting fitness enthusiasts aged 18-35. The campaign aims to increase brand awareness and drive sales through authentic creator content showcasing the performance and style of Nike products.")
   4. suggestedDeliverables: An array of likely deliverables for this type of brand/campaign (e.g., ["Instagram post", "Story highlight", "Reel", "YouTube video"])
   5. industry: The industry or sector (e.g., "Fashion", "Technology", "Food & Beverage", "Travel", "Beauty")
   6. targetAudience: Detailed description of the target audience
@@ -127,7 +123,13 @@ async function extractCampaignInfo(
   websiteContent: string
 ): Promise<CampaignExtractionResult> {
   try {
-    const promptContent = `Analyze the following website content from ${url} and extract campaign information in JSON format:\n\n${websiteContent}`
+    // Truncate content to reduce token usage
+    const truncatedContent =
+      websiteContent.length > 3000
+        ? websiteContent.substring(0, 3000) + '...[truncated]'
+        : websiteContent
+
+    const promptContent = `Analyze the following website content from ${url} and extract campaign information in JSON format:\n\n${truncatedContent}`
 
     const messages: ChatCompletionMessageParam[] = [
       SYSTEM_PROMPT_MSG,
@@ -136,9 +138,9 @@ async function extractCampaignInfo(
 
     const completion = await groq.chat.completions.create({
       messages,
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.3, // Slightly higher temperature for creative campaign names
-      max_tokens: 2000,
+      max_tokens: 800, // Reduced to save tokens
       response_format: { type: 'json_object' }
     })
 
@@ -151,8 +153,38 @@ async function extractCampaignInfo(
       log.error('Failed to parse AI response as JSON:', parseError)
       throw new Error('Failed to parse campaign information from AI response')
     }
-  } catch (error) {
+  } catch (error: unknown) {
     log.error('Error extracting campaign info:', error)
+
+    // Handle rate limit errors specifically
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'rate_limit_exceeded'
+    ) {
+      const errorMessage =
+        error && typeof error === 'object' && 'message' in error ? String(error.message) : ''
+      const waitTime = errorMessage.match(/(\d+\.?\d*)s/)?.[1]
+      throw new Error(`AI service is at capacity. Please try again in ${waitTime || '30'} seconds.`)
+    }
+
+    // Handle service unavailable errors
+    if (error && typeof error === 'object' && 'status' in error && error.status === 503) {
+      throw new Error('AI service is temporarily unavailable. Please try again in a few moments.')
+    }
+
+    // Handle other API errors
+    if (
+      error &&
+      typeof error === 'object' &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status >= 400
+    ) {
+      throw new Error(`AI service error (${error.status}). Please try again later.`)
+    }
+
     throw new Error('Failed to extract campaign information from website')
   }
 }
@@ -195,9 +227,25 @@ function prepareCampaignData(
   extractedInfo: CampaignExtractionResult,
   userProvidedDetails?: UserProvidedDetails
 ) {
+  // Handle description - convert to string if it's an object
+  let description = userProvidedDetails?.description || extractedInfo.description
+
+  // If description is an object (legacy format), convert to string
+  if (typeof description === 'object' && description !== null) {
+    const descObj = description as {
+      what?: string
+      objectives?: string
+      targetAudience?: string
+      keyMessagingPoints?: string
+    }
+    description = `${descObj.what || ''} ${descObj.objectives || ''} Target audience: ${
+      descObj.targetAudience || extractedInfo.targetAudience || ''
+    }. ${descObj.keyMessagingPoints || ''}`.trim()
+  }
+
   return {
     name: userProvidedDetails?.name || extractedInfo.suggestedCampaignName,
-    description: userProvidedDetails?.description || extractedInfo.description,
+    description: description,
     startDate: userProvidedDetails?.startDate,
     endDate: userProvidedDetails?.endDate,
     deliverables: userProvidedDetails?.deliverables || extractedInfo.suggestedDeliverables

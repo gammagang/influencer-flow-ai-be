@@ -84,7 +84,7 @@ export const createCampaignFromWebsiteTool = {
   function: {
     name: 'create_campaign_from_website',
     description:
-      'Analyze a brand website URL to extract campaign information and create a campaign. This tool scrapes the website, extracts relevant details like brand name, description, and suggests campaign parameters. It will identify missing required information and ask the user to provide those details before creating the campaign.',
+      'Analyze a brand website URL to extract campaign information and create a campaign. IMPORTANT: This is typically a two-step process: 1) First call with just the URL to analyze and get suggestions, 2) Second call with URL + userProvidedDetails after asking user to confirm/modify the suggested campaign name, deliverables, and provide missing dates. Always ask user to confirm suggested details before the final creation.',
     parameters: {
       type: 'object',
       properties: {
@@ -124,7 +124,7 @@ export const createCampaignFromWebsiteTool = {
               },
               minItems: 1,
               maxItems: 20,
-              description: 'List of deliverables expected from creators'
+              description: 'List of Instagram deliverables expected from creators'
             },
             description: {
               type: 'string',
@@ -234,7 +234,7 @@ export const createCampaignTool = {
           minItems: 1,
           maxItems: 20,
           description:
-            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel", "YouTube video"])'
+            'List of Instagram deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Instagram story", "Instagram reel", "IGTV video"])'
         }
       },
       required: ['name', 'startDate', 'endDate', 'deliverables']
@@ -411,7 +411,7 @@ export const createCampaignFromProfileTool = {
   function: {
     name: 'create_campaign_from_profile',
     description:
-      "DO NOT CALL THIS FUNCTION WHEN USER FIRST SAYS 'create campaign from profile'! FIRST RESPONSE MUST BE QUESTIONS TO GATHER INFORMATION! When user says 'create campaign from brand profile', you must respond with questions asking for: 1) Campaign name 2) Start date 3) End date 4) Deliverables. DO NOT call this function until you have received specific answers to all these questions from the user. This tool creates a campaign using the user's existing brand profile to auto-fill brand-related details, but ALL campaign-specific details (name, dates, deliverables) must come from explicit user input through conversation.",
+      "CRITICAL WARNING: NEVER call this function immediately when user says 'create campaign from profile'! You must FIRST ask these specific questions and wait for user responses: 1) What would you like to name this campaign? 2) When should the campaign start? 3) When should the campaign end? 4) What Instagram deliverables do you need? ONLY call this function AFTER you have collected ALL required information through conversation. ABSOLUTELY FORBIDDEN to use any default, example, or placeholder values like 'Summer Promotion', '2024-06-01', or generic deliverables. This tool creates a campaign using the user's existing brand profile to auto-fill brand-related details, but ALL campaign-specific details must come from user input.",
     parameters: {
       type: 'object',
       properties: {
@@ -450,7 +450,7 @@ export const createCampaignFromProfileTool = {
           minItems: 1,
           maxItems: 20,
           description:
-            'List of deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Story", "Reel", "YouTube video"]). DO NOT use placeholder values.'
+            'List of Instagram deliverables expected from creators (required) - must be provided by user (e.g., ["Instagram post", "Instagram story", "Instagram reel", "IGTV video"]). DO NOT use placeholder values.'
         },
         targetAudience: {
           type: 'string',
