@@ -102,9 +102,9 @@ router.post('/docuseal/webhook', async (req: Request, res: Response) => {
 
   if (contractId) await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
 
-  if (submissionId) {
+  if (!contractId && submissionId)
     await updateSubmissionStatus(submissionId, event_type, role as 'Brand' | 'Creator')
-  }
+
   // Log the webhook event
 
   // Update Contract state in the database

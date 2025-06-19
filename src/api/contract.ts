@@ -71,9 +71,12 @@ export async function getContractById(id: number | string) {
  * Gets a contract by submissionId
  */
 export async function getContractBySubmissionId(submissionId: number | string) {
+  // Convert submissionId to string for consistent comparison
+  const submissionIdStr = submissionId.toString()
+
   const result = await sql<Contract[]>`
       SELECT * FROM contract c
-      WHERE c.meta->>'docusealSubmission.submission_id' = ${submissionId}
+      WHERE c.meta->'docusealSubmission'->>'id' = ${submissionIdStr}
     `
   return result.length ? result[0] : null
 }
