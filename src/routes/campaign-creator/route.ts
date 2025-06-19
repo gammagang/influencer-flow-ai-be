@@ -311,7 +311,7 @@ router.post('/:ccMappingId/send-contract', async (req: Request, res: Response) =
     const deliverables = mapping.campaign_creator_meta?.campaignInfo?.contentDeliverables || ''
 
     const creatorName = mapping.creator_name || 'Creator'
-    const creatorEmail = mapping.creator_email || 'jevowek812@finfave.com' // Default email if not provided
+    const creatorEmail = mapping.creator_email || 'tech@madhukm.com' // Default email if not provided
     const instaHandle = mapping.creator_handle || ''
 
     // Send the contract via DocuSeal

@@ -112,7 +112,8 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
         ...brandFields
         // Show creator fields as read-only to brand
         // ...creatorFields.map((field) => ({ ...field, readonly: true }))
-      ]
+      ],
+      metadata: { contractId: contractData.contractId.toString() }
     }
     // Creator submitter
     // {

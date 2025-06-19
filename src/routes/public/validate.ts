@@ -39,19 +39,23 @@ export const DocuSealWebhookSchema = z.object({
     application_key: z.string().nullable().optional(),
     decline_reason: z.string().nullable().optional(),
     preferences: z.record(z.string(), z.any()).optional(),
-    values: z.array(
-      z.object({
-        field: z.string(),
-        value: z.string()
-      })
-    ),
-    role: z.string(),
-    documents: z.array(
-      z.object({
-        name: z.string(),
-        url: z.string().url()
-      })
-    ),
+    values: z
+      .array(
+        z.object({
+          field: z.string(),
+          value: z.string()
+        })
+      )
+      .optional(),
+    role: z.string().optional(),
+    documents: z
+      .array(
+        z.object({
+          name: z.string(),
+          url: z.string().url()
+        })
+      )
+      .optional(),
     audit_log_url: z.string().url().nullable().optional(),
     submission_url: z.string().url().optional(),
     template: z.object({
@@ -62,14 +66,16 @@ export const DocuSealWebhookSchema = z.object({
       updated_at: z.string().datetime(),
       folder_name: z.string().nullable().optional()
     }),
-    submission: z.object({
-      id: z.number(),
-      created_at: z.string().datetime(),
-      audit_log_url: z.string().url().nullable().optional(),
-      combined_document_url: z.string().url().nullable().optional(),
-      status: z.string(),
-      url: z.string().url()
-    })
+    submission: z
+      .object({
+        id: z.number(),
+        created_at: z.string().datetime(),
+        audit_log_url: z.string().url().nullable().optional(),
+        combined_document_url: z.string().url().nullable().optional(),
+        status: z.string(),
+        url: z.string().url()
+      })
+      .optional()
   })
 })
 
