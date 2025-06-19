@@ -31,7 +31,11 @@ import {
 } from './validate'
 import configs from '@/configs'
 import { sendContractViaEmail } from '@/libs/docuseal'
+import { negotiationRouter } from './negotiation'
 const router = Router()
+
+// Mount negotiation routes
+router.use('/', negotiationRouter)
 
 router.post('/', async (req: Request, res: Response) => {
   const validatedBody = validateRequest(LinkCreatorToCampaignSchema, req.body, req.path)
