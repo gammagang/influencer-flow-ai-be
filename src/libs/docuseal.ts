@@ -71,6 +71,7 @@ export type ContractInput = {
 export const sendContractViaEmail = async (contractData: ContractInput) => {
   // Format deliverables as a bulleted list string
   const deliverablesText = contractData.deliverables
+  const contractId = contractData.contractId.toString()
 
   // Format compensation amount with currency
   // const formattedAmount = `${contractData.compensation.currency} ${contractData.compensation.amount}`
@@ -79,7 +80,7 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
   const brandFields: DocuSealField[] = [
     {
       name: FieldNames.contractId,
-      default_value: contractData.contractId.toString(),
+      default_value: contractId,
       readonly: true
     },
     { name: FieldNames.campaignName, default_value: contractData.campaign.name, readonly: true },
@@ -113,7 +114,8 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
         // Show creator fields as read-only to brand
         // ...creatorFields.map((field) => ({ ...field, readonly: true }))
       ],
-      metadata: { contractId: contractData.contractId.toString() }
+      metadata: { contractId },
+      external_id: contractId
     }
     // Creator submitter
     // {
@@ -126,7 +128,7 @@ export const sendContractViaEmail = async (contractData: ContractInput) => {
     //   //   // Show brand fields as read-only to creator
     //   //   ...brandFields.map((field) => ({ ...field, readonly: true })),
     //   //   ...creatorFields
-    //   // ]
+    //   // ]s
     // }
   ]
 

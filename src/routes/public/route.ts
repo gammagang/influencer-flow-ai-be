@@ -7,7 +7,7 @@ import { elevenLabsRouter } from '../elevenlabs/route'
 import { log } from '@/libs/logger'
 import { validateRequest } from '@/middlewares/validate-request'
 import { DocuSealWebhookSchema } from './validate'
-import { updateContractStatus } from '@/api/contract'
+import { updateContractStatus, updateSubmissionStatus } from '@/api/contract'
 
 const router = Router()
 // NOTE: All public routes will have no JWT middleware
@@ -77,25 +77,34 @@ router.get('/campaign-creator-details/:ccMappingId', async (req: Request, res: R
 router.post('/docuseal/webhook', async (req: Request, res: Response) => {
   // Validate the incoming webhook payload
   const validatedPayload = validateRequest(DocuSealWebhookSchema, req.body, req.path)
+  log.info(`Webhook Payload`, validatedPayload)
 
   // Extract important information
   const { event_type, timestamp, data } = validatedPayload
-  const { email, status, role, documents, metadata = {} } = data
+  const { email, status, role, metadata = {} } = data
   log.info(
     `DocuSeal webhook received: ${event_type} for role ${role}, with email '${email}' and status ${status}`
   )
-  log.info(`metadata & documents`, { metadata, documents })
 
   const contractId = metadata.contractId
-  if (!contractId)
+  const submissionId = event_type.includes('submission')
+    ? data.id
+    : event_type.includes('form')
+      ? data.submission_id
+      : null
+
+  if (!contractId && !submissionId)
     throw new NotFoundError(
       'Contract ID not found in webhook payload',
       `No contractId found in metadata: ${JSON.stringify(metadata)}`,
       req.path
     )
 
-  await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
+  if (contractId) await updateContractStatus(contractId, event_type, role as 'Brand' | 'Creator')
 
+  if (submissionId) {
+    await updateSubmissionStatus(submissionId, event_type, role as 'Brand' | 'Creator')
+  }
   // Log the webhook event
 
   // Update Contract state in the database

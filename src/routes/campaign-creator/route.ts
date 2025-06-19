@@ -178,7 +178,6 @@ router.get('/:ccMappingId/outreach/preview', async (req: Request, res: Response)
 
     // Generate email content using AI
     const generatedEmail = await generateUserOutreachEmail(emailData)
-    console.log(' generatedEmail:', generatedEmail)
 
     SuccessResponse.send({
       res,
