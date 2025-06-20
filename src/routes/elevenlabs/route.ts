@@ -300,7 +300,7 @@ elevenLabsRouter.put('/store-meta/:id', async (req, res) => {
       const result = await sql`
         UPDATE negotiation_attempt 
         SET 
-          meta = ${JSON.stringify(bodyData)},
+          meta = ${sql.json(bodyData)},
           ended_at = ${new Date()},
           summary = ${bodyData?.summary || 'Updated with raw data'}        WHERE id = ${negotiationAttemptId}
         RETURNING id, campaign_creator_id
