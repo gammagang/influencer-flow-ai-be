@@ -30,6 +30,7 @@ import {
   type CreateBrandProfileFromWebsiteParams,
   type BrandProfileExtractionResult
 } from '@/api/create-brand-profile-from-website'
+import configs from '@/configs'
 
 // In-memory cache for email templates (cleared on server restart)
 const emailTemplateCache = new Map<
@@ -794,7 +795,7 @@ export async function executeBulkOutreach(
           .replace(/{{CREATOR_NAME}}/g, creatorDetails.creator_name)
           .replace(
             /{{NEGOTIATION_LINK}}/g,
-            `${process.env.FRONTEND_URL || 'http://localhost:8080'}/agent-call?id=${creatorLink.id}`
+            `${configs.negotiationHostUrl}/agent-call?id=${creatorLink.id}`
           )
 
         // Send the personalized email
