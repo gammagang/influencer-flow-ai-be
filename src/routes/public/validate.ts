@@ -46,6 +46,7 @@ export const DocuSealWebhookSchema = z.object({
           value: z.string()
         })
       )
+      .nullable()
       .optional(),
     role: z.string().optional(),
     documents: z
@@ -55,6 +56,7 @@ export const DocuSealWebhookSchema = z.object({
           url: z.string().url()
         })
       )
+      .nullable()
       .optional(),
     audit_log_url: z.string().url().nullable().optional(),
     submission_url: z.string().url().optional(),
