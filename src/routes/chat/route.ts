@@ -3,7 +3,7 @@ import { log } from '@/libs/logger'
 import { SuccessResponse } from '@/libs/success-response'
 import { ChatRequestSchema } from './types'
 import { handleChatMessage } from './chat-handler'
-import { persistentConversationStore as conversationStore } from './conversation-store'
+import { conversationStore } from './conversation-store-adapter'
 import { creatorDiscoverySystemPrompt } from './prompts'
 
 const chatRouter = Router()
@@ -21,7 +21,7 @@ chatRouter.post('/message', async (req: Request, res: Response) => {
     const userId = req.user.sub
 
     // Get or create user's conversation (each user can only have one)
-    const conversation = conversationStore.getOrCreateUserConversation(
+    const conversation = await conversationStore.getOrCreateUserConversation(
       userId,
       creatorDiscoverySystemPrompt
     )
@@ -69,7 +69,7 @@ chatRouter.get('/user/conversation', async (req: Request, res: Response) => {
     }
 
     const userId = req.user.sub
-    const conversation = conversationStore.getUserActiveConversation(userId)
+    const conversation = await conversationStore.getUserActiveConversation(userId)
 
     if (!conversation) {
       SuccessResponse.send({
@@ -110,7 +110,7 @@ chatRouter.delete('/user/conversation', async (req: Request, res: Response) => {
     }
 
     const userId = req.user.sub
-    const deleted = conversationStore.deleteUserConversation(userId)
+    const deleted = await conversationStore.deleteUserConversation(userId)
 
     SuccessResponse.send({
       res,

@@ -12,7 +12,7 @@ import {
   getCampaignCreators as getCampaignCreatorsCore,
   validateCampaignAccess as validateCampaignAccessCore
 } from '@/services/core/campaign'
-import { persistentConversationStore } from './conversation-store'
+import { conversationStore } from './conversation-store-adapter'
 import {
   getCampaignCreators,
   getCampaignCreatorWithCampaignDetails,
@@ -450,7 +450,7 @@ export async function executeAddCreatorsToCampaign(
     const { campaign } = await validateCampaignAccessCore(params.campaignId, user)
 
     // Get conversation history to find discovered creators
-    const conversation = persistentConversationStore.getConversation(conversationId)
+    const conversation = await conversationStore.getConversation(conversationId)
     if (!conversation) {
       return {
         success: false,
@@ -459,7 +459,7 @@ export async function executeAddCreatorsToCampaign(
     }
 
     // Find the most recent discover_creators result in conversation
-    const messages = persistentConversationStore.getMessages(conversationId)
+    const messages = await conversationStore.getMessages(conversationId)
     let discoveredCreators: Array<{
       id: string
       name: string

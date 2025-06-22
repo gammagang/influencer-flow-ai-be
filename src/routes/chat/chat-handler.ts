@@ -2,7 +2,7 @@ import { type DiscoverCreatorParams } from '@/api/discover'
 import { groq } from '@/libs/groq'
 import { log } from '@/libs/logger'
 import { type UserJwt } from '@/middlewares/jwt'
-import { persistentConversationStore as conversationStore } from './conversation-store'
+import { conversationStore } from './conversation-store-adapter'
 import { finalResponseSystemPrompt } from './prompts'
 import {
   executeAddCreatorsToCampaign,
@@ -183,6 +183,22 @@ function _handleGroqError(error: unknown, conversationId: string): GroqErrorResp
   }
 }
 
+// Helper function to clean XML-like artifacts from AI responses
+function cleanAIResponse(content: string): string {
+  if (!content) return content
+
+  // Remove XML-like function tags and their content
+  return content
+    .replace(/<function[^>]*>.*?<\/function>/gi, '') // Remove <function>...</function> tags
+    .replace(/<\|[^|]*\|>/g, '') // Remove <|...|> internal tags
+    .replace(/[a-zA-Z_]+>.*?<\/function>/gi, '') // Remove malformed function calls like "add_creators_to_campaign>...</function>"
+    .replace(/[a-zA-Z_]+>\{.*?\}<\/function>/gi, '') // Remove specific pattern "functionName>{...}</function>"
+    .replace(/\s*\n\s*\n\s*/g, '\n\n') // Clean up extra whitespace
+    .trim()
+}
+
+// ...existing code...
+
 export async function handleChatMessage(
   message: string,
   user: UserJwt,
@@ -195,16 +211,16 @@ export async function handleChatMessage(
     const currentConversationId = conversationId || conversationStore.generateConversationId()
 
     // Get existing conversation (should already be created by route)
-    const conversation = conversationStore.getConversation(currentConversationId)
+    const conversation = await conversationStore.getConversation(currentConversationId)
     if (!conversation) {
       throw new Error(`Conversation ${currentConversationId} not found`)
     }
 
     // Add user message to conversation
-    conversationStore.addMessage(currentConversationId, 'user', message)
+    await conversationStore.addMessage(currentConversationId, 'user', message)
 
     // Get all messages for context and convert to proper format
-    const allMessages = conversationStore.getMessages(currentConversationId)
+    const allMessages = await conversationStore.getMessages(currentConversationId)
 
     // Prepare messages for Groq with proper typing
     const messages = allMessages.map((msg) => {
@@ -215,7 +231,7 @@ export async function handleChatMessage(
         return { role: 'user' as const, content: msg.content }
       }
       if (msg.role === 'assistant') {
-        if (msg.tool_calls) {
+        if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
           return {
             role: 'assistant' as const,
             content: msg.content,
@@ -269,16 +285,85 @@ export async function handleChatMessage(
       throw new Error('No response from AI assistant')
     }
 
+    // Debug: Log the complete assistant message from Groq
+    log.info('Complete assistant message from Groq:', {
+      conversationId: currentConversationId,
+      content: assistantMessage.content,
+      contentType: typeof assistantMessage.content,
+      contentLength: assistantMessage.content?.length || 0,
+      tool_calls: assistantMessage.tool_calls,
+      tool_calls_length: assistantMessage.tool_calls?.length || 0,
+      hasToolCalls: Boolean(assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0),
+      messageKeys: Object.keys(assistantMessage)
+    })
+
+    // Check for malformed function calls in content
+    if (assistantMessage.content && !assistantMessage.tool_calls) {
+      const hasMalformedFunctionCalls =
+        assistantMessage.content.includes('_tag|>') ||
+        assistantMessage.content.includes('</function>') ||
+        /[a-zA-Z_]+>\{.*?\}/.test(assistantMessage.content)
+
+      if (hasMalformedFunctionCalls) {
+        log.error('AI generated malformed function calls instead of using tools:', {
+          conversationId: currentConversationId,
+          content: assistantMessage.content,
+          shouldHaveUsedTools: true
+        })
+
+        // Try to extract and execute the intended tool call
+        const toolCallMatch = assistantMessage.content.match(
+          /([a-zA-Z_]+)>\s*(\{.*?\})\s*<\/function>/
+        )
+        if (toolCallMatch) {
+          const [, functionName, argsJson] = toolCallMatch
+          try {
+            const args = JSON.parse(argsJson)
+            log.info(`Attempting to execute extracted tool call: ${functionName}`, { args })
+
+            // Create a synthetic tool call structure
+            const syntheticToolCall = {
+              id: `synthetic_${Date.now()}`,
+              type: 'function' as const,
+              function: {
+                name: functionName,
+                arguments: argsJson
+              }
+            }
+
+            // Add the synthetic tool call to trigger proper execution
+            assistantMessage.tool_calls = [syntheticToolCall]
+            log.info('Created synthetic tool call for malformed function call', {
+              syntheticToolCall
+            })
+          } catch (parseError) {
+            log.error('Failed to parse malformed function call arguments:', {
+              parseError,
+              argsJson
+            })
+          }
+        }
+      }
+    }
+
     let response: ChatResponse = {
-      message: assistantMessage.content || '',
+      message: cleanAIResponse(assistantMessage.content || ''),
       toolCalls: [],
       conversationId: currentConversationId
     }
 
     // Handle function calls if any
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      // Debug: Log the tool_calls structure
+      log.info('Raw tool_calls from Groq:', {
+        toolCalls: assistantMessage.tool_calls,
+        toolCallsType: typeof assistantMessage.tool_calls,
+        isArray: Array.isArray(assistantMessage.tool_calls),
+        stringified: JSON.stringify(assistantMessage.tool_calls, null, 2)
+      })
+
       // Store assistant message with tool calls
-      conversationStore.addMessage(
+      await conversationStore.addMessage(
         currentConversationId,
         'assistant',
         assistantMessage.content || '',
@@ -433,7 +518,7 @@ export async function handleChatMessage(
           }
 
           // Store successful result in conversation
-          conversationStore.addMessage(
+          await conversationStore.addMessage(
             currentConversationId,
             'tool',
             JSON.stringify(result),
@@ -459,7 +544,7 @@ export async function handleChatMessage(
           }
 
           // Store error result in conversation
-          conversationStore.addMessage(
+          await conversationStore.addMessage(
             currentConversationId,
             'tool',
             JSON.stringify(errorResult),
@@ -480,7 +565,7 @@ export async function handleChatMessage(
 
       // Generate final response with tool results
       // Get updated conversation history
-      const updatedMessages = conversationStore.getMessages(currentConversationId)
+      const updatedMessages = await conversationStore.getMessages(currentConversationId)
       const followUpMessages = updatedMessages.map((msg) => {
         if (msg.role === 'system') {
           return { role: 'system' as const, content: msg.content }
@@ -489,7 +574,7 @@ export async function handleChatMessage(
           return { role: 'user' as const, content: msg.content }
         }
         if (msg.role === 'assistant') {
-          if (msg.tool_calls) {
+          if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
             return {
               role: 'assistant' as const,
               content: msg.content,
@@ -527,25 +612,42 @@ export async function handleChatMessage(
       })
 
       response = {
-        message: finalCompletion.choices[0]?.message?.content || response.message,
+        message: cleanAIResponse(finalCompletion.choices[0]?.message?.content || response.message),
         toolCalls: toolResults,
         conversationId: response.conversationId
       }
 
       // Store final assistant response
-      conversationStore.addMessage(
-        currentConversationId,
-        'assistant',
+      const finalResponseContent = cleanAIResponse(
         finalCompletion.choices[0]?.message?.content || ''
       )
+      log.info('Storing final assistant response:', {
+        conversationId: currentConversationId,
+        finalResponseContent,
+        originalResponseMessage: response.message,
+        contentLength: finalResponseContent.length
+      })
+
+      await conversationStore.addMessage(currentConversationId, 'assistant', finalResponseContent)
     } else {
       // No tool calls, just store the assistant response
-      conversationStore.addMessage(
-        currentConversationId,
-        'assistant',
-        assistantMessage.content || ''
-      )
+      const directResponseContent = cleanAIResponse(assistantMessage.content || '')
+      log.info('Storing direct assistant response (no tool calls):', {
+        conversationId: currentConversationId,
+        directResponseContent,
+        contentLength: directResponseContent.length
+      })
+
+      await conversationStore.addMessage(currentConversationId, 'assistant', directResponseContent)
     }
+
+    // Debug: Log the final response being returned to frontend
+    log.info('Final response being returned to frontend:', {
+      conversationId: currentConversationId,
+      message: response.message,
+      messageLength: response.message?.length || 0,
+      toolCallsCount: response.toolCalls?.length || 0
+    })
 
     return response
   } catch (error) {
